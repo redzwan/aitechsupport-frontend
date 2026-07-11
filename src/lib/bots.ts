@@ -21,6 +21,11 @@ export async function listBots(): Promise<Bot[]> {
   return res.data;
 }
 
+export async function getBot(botId: number): Promise<Bot | undefined> {
+  const bots = await listBots();
+  return bots.find((b) => b.id === botId);
+}
+
 export async function createBot(payload: {
   name: string;
   system_prompt?: string;

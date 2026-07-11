@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { toast } from "react-hot-toast";
-import { Bot as BotIcon, Plus, Loader2 } from "lucide-react";
+import { Bot as BotIcon, Plus, Loader2, BookOpen } from "lucide-react";
 import { listBots, createBot, listModels, type Bot, type ModelOption } from "@/lib/bots";
 
 export default function BotsPage() {
@@ -121,9 +122,17 @@ export default function BotsPage() {
                   <div className="text-xs text-slate-500">Model: {modelLabel(b.chat_model)}</div>
                 </div>
               </div>
-              <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${b.is_active ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "bg-slate-100 text-slate-500"}`}>
-                {b.is_active ? "active" : "inactive"}
-              </span>
+              <div className="flex items-center gap-3">
+                <Link
+                  href={`/dashboard/bots/${b.id}/knowledge`}
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                >
+                  <BookOpen size={14} /> Knowledge
+                </Link>
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${b.is_active ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "bg-slate-100 text-slate-500"}`}>
+                  {b.is_active ? "active" : "inactive"}
+                </span>
+              </div>
             </div>
           ))}
         </div>
