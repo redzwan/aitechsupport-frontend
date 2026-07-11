@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { FileText, Loader2, ShieldAlert, ChevronRight } from "lucide-react";
+import { FileText, Loader2, ShieldAlert, ChevronRight, Eye } from "lucide-react";
 import { listTemplates, updateTemplate, type EmailTemplate } from "@/lib/email";
 
 const VARS: Record<string, string[]> = {
@@ -10,6 +10,20 @@ const VARS: Record<string, string[]> = {
   password_changed: ["{name}", "{email}"],
   quota_warning: ["{name}", "{plan}", "{used_pct}", "{tokens_remaining}", "{dashboard_url}"],
 };
+
+// Sample values so the live preview renders with realistic content
+// instead of the raw {placeholder} tokens.
+const SAMPLES: Record<string, string> = {
+  "{name}": "Jane Doe",
+  "{email}": "jane@example.com",
+  "{dashboard_url}": "https://app.aitechsupport.my/dashboard",
+  "{plan}": "Pro",
+  "{used_pct}": "85",
+  "{tokens_remaining}": "15,000",
+};
+
+const fillSamples = (html: string) =>
+  Object.entries(SAMPLES).reduce((acc, [token, value]) => acc.split(token).join(value), html);
 
 export default function EmailTemplatesPage() {
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
@@ -122,6 +136,29 @@ export default function EmailTemplatesPage() {
               <label className="mb-1 block text-sm font-medium">Body (HTML)</label>
               <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={12} className={`${inputCls} font-mono text-xs`} />
             </div>
+
+            <div>
+              <div className="mb-1 flex items-center gap-1.5 text-sm font-medium">
+                <Eye size={15} className="text-slate-400" />
+                Preview
+                <span className="text-xs font-normal text-slate-400">(sample values shown)</span>
+              </div>
+              <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
+                <div className="border-b border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800/60">
+                  <div className="text-xs text-slate-400">Subject</div>
+                  <div className="truncate text-sm font-medium text-slate-700 dark:text-slate-200">
+                    {fillSamples(subject) || <span className="text-slate-400">No subject</span>}
+                  </div>
+                </div>
+                <iframe
+                  title="Email preview"
+                  sandbox=""
+                  srcDoc={fillSamples(body)}
+                  className="h-96 w-full border-0 bg-white"
+                />
+              </div>
+            </div>
+
             <button type="submit" disabled={saving} className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60">
               {saving ? "Saving…" : "Save template"}
             </button>
