@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import AppToaster from "@/components/AppToaster";
 
 export const metadata: Metadata = {
   title: "AiTechSupport — AI Support Chatbot for your website & WhatsApp",
@@ -14,7 +15,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <AppToaster />
+      </body>
     </html>
   );
 }
