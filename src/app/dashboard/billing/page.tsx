@@ -1,0 +1,154 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
+import { CreditCard, Check, Loader2, Zap } from "lucide-react";
+import {
+  listPackages,
+  getSubscription,
+  subscribe,
+  type Package,
+  type Subscription,
+} from "@/lib/billing";
+
+function fmt(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
+  return `${n}`;
+}
+
+export default function BillingPage() {
+  const [pkgs, setPkgs] = useState<Package[]>([]);
+  const [sub, setSub] = useState<Subscription | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const load = async () => {
+    const [p, s] = await Promise.all([listPackages(), getSubscription()]);
+    setPkgs(p);
+    setSub(s);
+  };
+
+  useEffect(() => {
+    load()
+      .catch(() => toast.error("Failed to load billing"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const onSubscribe = async (slug: string) => {
+    setBusy(slug);
+    try {
+      const updated = await subscribe(slug);
+      setSub(updated);
+      toast.success(`You're on the ${updated.plan_name} plan`);
+    } catch (err: any) {
+      const status = err?.response?.status;
+      if (status === 503) toast.error("Online payment isn't enabled yet — contact us to activate a paid plan.");
+      else toast.error(err?.response?.data?.detail || "Could not change plan");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  if (loading || !sub) {
+    return (
+      <div className="flex h-64 items-center justify-center text-slate-500">
+        <Loader2 className="animate-spin" />
+      </div>
+    );
+  }
+
+  const pct = sub.tokens_quota > 0 ? Math.min(100, Math.round((sub.tokens_used / sub.tokens_quota) * 100)) : 0;
+  const low = sub.tokens_remaining <= sub.tokens_quota * 0.1;
+
+  return (
+    <div className="mx-auto max-w-4xl">
+      <h1 className="text-2xl font-semibold">Billing &amp; plan</h1>
+
+      {/* Current plan + usage */}
+      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950">
+              <CreditCard size={20} />
+            </div>
+            <div>
+              <div className="text-lg font-semibold">{sub.plan_name} plan</div>
+              <div className="text-xs text-slate-500">Up to {sub.max_bots} bot(s) · status: {sub.status}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5">
+          <div className="mb-1 flex items-center justify-between text-sm">
+            <span className="font-medium">Tokens this month</span>
+            <span className="text-slate-500">
+              {fmt(sub.tokens_used)} / {fmt(sub.tokens_quota)} used
+            </span>
+          </div>
+          <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+            <div
+              className={`h-full rounded-full ${low ? "bg-rose-500" : "bg-indigo-600"}`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <div className={`mt-1 text-xs ${low ? "text-rose-600" : "text-slate-500"}`}>
+            {fmt(sub.tokens_remaining)} tokens remaining{low ? " — running low, consider upgrading" : ""}
+          </div>
+        </div>
+      </div>
+
+      {/* Plans */}
+      <h2 className="mb-3 mt-8 text-sm font-semibold text-slate-500">Plans</h2>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {pkgs.map((p) => {
+          const current = p.slug === sub.plan;
+          return (
+            <div
+              key={p.id}
+              className={`flex flex-col rounded-2xl border p-5 ${
+                current
+                  ? "border-indigo-500 bg-indigo-50/40 dark:border-indigo-500 dark:bg-indigo-950/30"
+                  : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="font-semibold">{p.name}</div>
+                {current && (
+                  <span className="rounded-full bg-indigo-600 px-2 py-0.5 text-[10px] font-medium text-white">current</span>
+                )}
+              </div>
+              <div className="mt-2 text-2xl font-bold">
+                {p.price_myr === 0 ? "Free" : <>RM{p.price_myr}<span className="text-sm font-normal text-slate-500">/mo</span></>}
+              </div>
+              <div className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+                <Zap size={12} /> {fmt(p.monthly_token_quota)} tokens · {p.max_bots} bot(s)
+              </div>
+              <ul className="mt-3 flex-1 space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
+                {p.features.map((f, i) => (
+                  <li key={i} className="flex items-start gap-1.5">
+                    <Check size={13} className="mt-0.5 shrink-0 text-emerald-500" /> {f}
+                  </li>
+                ))}
+              </ul>
+              <button
+                disabled={current || busy === p.slug}
+                onClick={() => onSubscribe(p.slug)}
+                className={`mt-4 rounded-lg px-4 py-2 text-sm font-medium transition disabled:opacity-60 ${
+                  current
+                    ? "cursor-default bg-slate-100 text-slate-400 dark:bg-slate-800"
+                    : "bg-indigo-600 text-white hover:bg-indigo-700"
+                }`}
+              >
+                {current ? "Current plan" : busy === p.slug ? "…" : p.price_myr === 0 ? "Switch to Free" : "Choose plan"}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-4 text-xs text-slate-500">
+        Online payment is being finalised. Paid plans are activated manually for now — reach out and we&apos;ll switch you over.
+      </p>
+    </div>
+  );
+}

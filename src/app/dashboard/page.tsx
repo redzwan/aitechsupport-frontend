@@ -2,17 +2,26 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bot as BotIcon, KeyRound, ArrowRight } from "lucide-react";
+import { Bot as BotIcon, KeyRound, ArrowRight, CreditCard } from "lucide-react";
 import { listBots, type Bot } from "@/lib/bots";
+import { getSubscription, type Subscription } from "@/lib/billing";
 import { fetchMe, type UserProfile } from "@/lib/auth";
+
+function fmt(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
+  return `${n}`;
+}
 
 export default function DashboardHome() {
   const [bots, setBots] = useState<Bot[]>([]);
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [sub, setSub] = useState<Subscription | null>(null);
 
   useEffect(() => {
     listBots().then(setBots).catch(() => {});
     fetchMe().then(setUser).catch(() => {});
+    getSubscription().then(setSub).catch(() => {});
   }, []);
 
   return (
@@ -37,6 +46,23 @@ export default function DashboardHome() {
             Manage bots <ArrowRight size={14} />
           </Link>
         </div>
+
+        {sub && (
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950">
+                <CreditCard size={20} />
+              </div>
+              <div>
+                <div className="text-base font-semibold">{sub.plan_name} plan</div>
+                <div className="text-sm text-slate-500">{fmt(sub.tokens_remaining)} of {fmt(sub.tokens_quota)} tokens left</div>
+              </div>
+            </div>
+            <Link href="/dashboard/billing" className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:underline">
+              View plan &amp; usage <ArrowRight size={14} />
+            </Link>
+          </div>
+        )}
 
         {user?.is_platform_admin && (
           <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">

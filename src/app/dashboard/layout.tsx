@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Bot, KeyRound, LogOut, Loader2 } from "lucide-react";
+import { LayoutDashboard, Bot, CreditCard, Boxes, Users, KeyRound, LogOut, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -17,13 +17,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  const nav = [
+  const clientNav = [
     { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
     { href: "/dashboard/bots", label: "Bots", icon: Bot },
-    ...(user.is_platform_admin
-      ? [{ href: "/dashboard/settings", label: "API Keys & Models", icon: KeyRound }]
-      : []),
+    { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
   ];
+  const adminNav = [
+    { href: "/dashboard/admin/packages", label: "Packages", icon: Boxes },
+    { href: "/dashboard/admin/clients", label: "Clients", icon: Users },
+    { href: "/dashboard/settings", label: "API Keys & Models", icon: KeyRound },
+  ];
+
+  const NavLink = ({ href, label, icon: Icon }: { href: string; label: string; icon: any }) => {
+    const active = pathname === href;
+    return (
+      <Link
+        href={href}
+        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
+          active
+            ? "bg-indigo-600 text-white"
+            : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+        }`}
+      >
+        <Icon size={18} />
+        {label}
+      </Link>
+    );
+  };
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -32,23 +52,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           AiTech<span className="text-indigo-600">Support</span>
         </div>
         <nav className="flex-1 space-y-1 px-3">
-          {nav.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href;
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                  active
-                    ? "bg-indigo-600 text-white"
-                    : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-                }`}
-              >
-                <Icon size={18} />
-                {label}
-              </Link>
-            );
-          })}
+          {clientNav.map((item) => (
+            <NavLink key={item.href} {...item} />
+          ))}
+          {user.is_platform_admin && (
+            <>
+              <div className="px-3 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                Platform admin
+              </div>
+              {adminNav.map((item) => (
+                <NavLink key={item.href} {...item} />
+              ))}
+            </>
+          )}
         </nav>
         <div className="border-t border-slate-200 p-3 dark:border-slate-800">
           <div className="mb-2 px-2 text-xs text-slate-500">
