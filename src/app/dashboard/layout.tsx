@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Bot, CreditCard, UserCircle, Boxes, Users, KeyRound, LogOut, Loader2 } from "lucide-react";
+import { LayoutDashboard, Bot, CreditCard, UserCircle, Boxes, Users, KeyRound, Mail, FileText, LogOut, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -28,6 +28,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: "/dashboard/admin/packages", label: "Packages", icon: Boxes },
     { href: "/dashboard/admin/clients", label: "Clients", icon: Users },
     { href: "/dashboard/settings", label: "API Keys & Models", icon: KeyRound },
+    { href: "/dashboard/admin/email", label: "Email (SMTP)", icon: Mail },
+    { href: "/dashboard/admin/email-templates", label: "Email templates", icon: FileText },
   ];
 
   const NavLink = ({ href, label, icon: Icon }: { href: string; label: string; icon: any }) => {
