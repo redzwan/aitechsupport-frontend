@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "react-hot-toast";
-import { ArrowLeft, BookOpen, MessageSquare, Inbox as InboxIcon, Loader2, Mail, User as UserIcon, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, BookOpen, MessageSquare, Inbox as InboxIcon, BarChart3, Loader2, Mail, User as UserIcon, CheckCircle2 } from "lucide-react";
 import {
   listConversations,
   getConversationMessages,
@@ -106,6 +106,9 @@ export default function InboxPage() {
         <span className="flex flex-1 items-center justify-center gap-2 rounded-md bg-white px-3 py-1.5 text-sm font-medium text-indigo-600 shadow-sm dark:bg-slate-900">
           <InboxIcon size={15} /> Inbox
         </span>
+        <Link href={`/dashboard/bots/${botId}/analytics`} className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-slate-500">
+          <BarChart3 size={15} /> Analytics
+        </Link>
       </div>
 
       <div className="mb-4 flex items-center justify-between">

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
-import { Bot as BotIcon, Plus, Loader2, BookOpen, MessageSquare, Inbox as InboxIcon } from "lucide-react";
+import { Bot as BotIcon, Plus, Loader2, BookOpen, MessageSquare, Inbox as InboxIcon, BarChart3 } from "lucide-react";
 import { listBots, createBot, listModels, type Bot, type ModelOption } from "@/lib/bots";
 
 export default function BotsPage() {
@@ -140,6 +140,12 @@ export default function BotsPage() {
                   className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
                   <InboxIcon size={14} /> Inbox
+                </Link>
+                <Link
+                  href={`/dashboard/bots/${b.id}/analytics`}
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                >
+                  <BarChart3 size={14} /> Analytics
                 </Link>
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${b.is_active ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "bg-slate-100 text-slate-500"}`}>
                   {b.is_active ? "active" : "inactive"}
