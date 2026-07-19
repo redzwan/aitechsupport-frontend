@@ -11,6 +11,8 @@ export type KnowledgeSource = {
   location: string | null;
   status: string; // pending | processing | ready | failed
   chunk_count: number;
+  has_file: boolean; // an original upload is stored and downloadable
+  file_size: number | null;
 };
 
 export async function listKnowledge(botId: number): Promise<KnowledgeSource[]> {
@@ -38,4 +40,10 @@ export async function uploadKnowledge(botId: number, file: File): Promise<Knowle
 
 export async function deleteKnowledge(sourceId: number): Promise<void> {
   await api.delete(`/knowledge/${sourceId}`);
+}
+
+// Fetch a short-lived presigned URL for the stored original file.
+export async function knowledgeDownloadUrl(sourceId: number): Promise<string> {
+  const res = await api.get(`/knowledge/${sourceId}/download`);
+  return res.data.url as string;
 }

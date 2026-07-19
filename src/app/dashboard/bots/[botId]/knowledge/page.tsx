@@ -14,17 +14,25 @@ import {
   UploadCloud,
   CheckCircle2,
   XCircle,
+  Download,
 } from "lucide-react";
 import {
   listKnowledge,
   addKnowledge,
   uploadKnowledge,
   deleteKnowledge,
+  knowledgeDownloadUrl,
   type KnowledgeSource,
 } from "@/lib/knowledge";
 import { getBot, type Bot } from "@/lib/bots";
 
 type Tab = "file" | "url" | "text";
+
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -124,6 +132,22 @@ export default function KnowledgePage() {
     }
   };
 
+  const download = async (id: number) => {
+    // Open the tab synchronously (inside the click gesture) so Safari's popup
+    // blocker doesn't silently drop it after the await; sever opener for
+    // tab-nabbing safety. The presigned URL forces an attachment download.
+    const tab = window.open("", "_blank");
+    if (tab) tab.opener = null;
+    try {
+      const url = await knowledgeDownloadUrl(id);
+      if (tab) tab.location.href = url;
+      else window.location.href = url; // popup blocked -> download in the current tab
+    } catch (err: any) {
+      if (tab) tab.close();
+      toast.error(err?.response?.data?.detail || "Download unavailable");
+    }
+  };
+
   const inputCls =
     "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-700 dark:bg-slate-800";
   const tabs: { key: Tab; label: string; icon: any }[] = [
@@ -203,10 +227,16 @@ export default function KnowledgePage() {
                   <div className="truncate font-medium">{s.title || s.location || `${s.source_type} source`}</div>
                   <div className="text-xs text-slate-500">
                     {s.source_type} · {s.chunk_count} chunk{s.chunk_count === 1 ? "" : "s"}
+                    {s.has_file && s.file_size != null ? ` · ${formatBytes(s.file_size)}` : ""}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <StatusBadge status={s.status} />
+                  {s.has_file && (
+                    <button onClick={() => download(s.id)} className="text-slate-400 hover:text-indigo-600" title="Download original">
+                      <Download size={16} />
+                    </button>
+                  )}
                   <button onClick={() => remove(s.id)} className="text-slate-400 hover:text-rose-600" title="Remove">
                     <Trash2 size={16} />
                   </button>
