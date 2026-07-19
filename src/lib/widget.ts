@@ -2,10 +2,12 @@ import api from "@/lib/api";
 
 export interface WidgetAppearance {
   title: string;
+  subtitle: string;
   greeting: string;
   primary_color: string;
   position: "right" | "left";
   launcher_label: string;
+  theme: "auto" | "light" | "dark";
 }
 
 export interface WidgetConfig {
