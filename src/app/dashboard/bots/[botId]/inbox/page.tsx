@@ -16,6 +16,7 @@ import {
   type ConversationMessage,
 } from "@/lib/inbox";
 import { getBot, type Bot } from "@/lib/bots";
+import { API_URL, TOKEN_KEY } from "@/lib/api";
 
 function timeAgo(iso: string | null): string {
   if (!iso) return "";
@@ -58,6 +59,14 @@ export default function InboxPage() {
     setMessages(await getConversationMessages(botId, convId));
   }, [botId]);
 
+  // Latest callbacks/state for the SSE handler, without reconnecting the stream.
+  const refreshRef = useRef(refresh);
+  const loadThreadRef = useRef(loadThread);
+  const selectedIdRef = useRef(selectedId);
+  refreshRef.current = refresh;
+  loadThreadRef.current = loadThread;
+  selectedIdRef.current = selectedId;
+
   useEffect(() => {
     getBot(botId).then(setBot).catch(() => {});
   }, [botId]);
@@ -82,6 +91,56 @@ export default function InboxPage() {
   useEffect(() => {
     if (threadRef.current) threadRef.current.scrollTop = threadRef.current.scrollHeight;
   }, [messages]);
+
+  // Live SSE: refetch instantly on any org change. Polling above stays as the fallback.
+  useEffect(() => {
+    const ctrl = new AbortController();
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    const connect = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/v1/bots/${botId}/events`, {
+          headers: { Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) ?? "" : ""}` },
+          signal: ctrl.signal,
+        });
+        if (!res.ok || !res.body) throw new Error("sse");
+        const reader = res.body.getReader();
+        const dec = new TextDecoder();
+        let buf = "";
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          let nl: number;
+          while ((nl = buf.indexOf("\n\n")) >= 0) {
+            const frame = buf.slice(0, nl);
+            buf = buf.slice(nl + 2);
+            const line = frame.split("\n").find((l) => l.startsWith("data:"));
+            if (!line) continue;
+            let ev: { type?: string; conv_id?: number };
+            try {
+              ev = JSON.parse(line.slice(5).trim());
+            } catch {
+              continue;
+            }
+            if (ev.type === "ping") {
+              refreshRef.current().catch(() => {});
+              if (ev.conv_id && ev.conv_id === selectedIdRef.current) {
+                loadThreadRef.current(ev.conv_id).catch(() => {});
+              }
+            }
+          }
+        }
+      } catch {
+        /* dropped */
+      }
+      if (!ctrl.signal.aborted) retry = setTimeout(connect, 5000); // reconnect
+    };
+    connect();
+    return () => {
+      ctrl.abort();
+      if (retry) clearTimeout(retry);
+    };
+  }, [botId]);
 
   const open = async (c: Conversation) => {
     setSelected(c);
