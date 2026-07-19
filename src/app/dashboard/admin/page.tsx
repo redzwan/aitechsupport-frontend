@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Boxes, Users, KeyRound, HardDrive, ArrowRight, ShieldAlert, Loader2 } from "lucide-react";
+import { Boxes, Users, KeyRound, HardDrive, ArrowRight, ShieldAlert, Loader2, LayoutTemplate, FileText } from "lucide-react";
 import { fetchMe, type UserProfile } from "@/lib/auth";
 import { adminListClients, type ClientRow } from "@/lib/billing";
 
@@ -43,6 +43,8 @@ export default function AdminHub() {
 
   const paying = clients.filter((c) => c.plan !== "free").length;
   const cards = [
+    { href: "/dashboard/admin/homepage", label: "Homepage", desc: "Edit the landing page", icon: LayoutTemplate },
+    { href: "/dashboard/admin/pages", label: "Pages", desc: "About, Privacy, Terms…", icon: FileText },
     { href: "/dashboard/admin/packages", label: "Packages", desc: "Plans you sell", icon: Boxes },
     { href: "/dashboard/admin/clients", label: "Clients", desc: `${clients.length} total · ${paying} paying`, icon: Users },
     { href: "/dashboard/settings", label: "API Keys & Models", desc: "OpenRouter, Voyage, defaults", icon: KeyRound },
