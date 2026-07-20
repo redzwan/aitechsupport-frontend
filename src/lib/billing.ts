@@ -47,6 +47,15 @@ export async function subscribe(packageSlug: string): Promise<Subscription> {
   return (await api.post("/billing/subscribe", { package_slug: packageSlug })).data;
 }
 
+export type CheckoutResult = {
+  payment_url: string | null; // paid plan -> redirect the browser here
+  bill_id: string | null;
+  subscription: Subscription | null; // free plan / downgrade -> already applied
+};
+export async function checkout(packageSlug: string): Promise<CheckoutResult> {
+  return (await api.post("/billing/checkout", { package_slug: packageSlug })).data;
+}
+
 // ----- platform admin -----
 export async function adminListPackages(): Promise<Package[]> {
   return (await api.get("/admin/packages")).data;

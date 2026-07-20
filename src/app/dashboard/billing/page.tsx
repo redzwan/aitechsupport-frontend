@@ -6,7 +6,7 @@ import { CreditCard, Check, Loader2, Zap } from "lucide-react";
 import {
   listPackages,
   getSubscription,
-  subscribe,
+  checkout,
   type Package,
   type Subscription,
 } from "@/lib/billing";
@@ -33,14 +33,53 @@ export default function BillingPage() {
     load()
       .catch(() => toast.error("Failed to load billing"))
       .finally(() => setLoading(false));
+    handleBillplzReturn();
   }, []);
+
+  // Billplz redirects back with ?billplz[paid]=true&billplz[id]=… after payment.
+  // The webhook activates the plan server-side; here we confirm and refresh (the
+  // callback may land a moment after the redirect, so re-poll a few times).
+  const handleBillplzReturn = () => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const paid = params.get("billplz[paid]");
+    if (paid === null) return;
+    // Strip the Billplz params so a refresh doesn't re-trigger this.
+    window.history.replaceState({}, "", window.location.pathname);
+    if (paid === "true") {
+      toast.success("Payment received — activating your plan…");
+      let tries = 0;
+      const poll = async () => {
+        tries += 1;
+        try {
+          const s = await getSubscription();
+          setSub(s);
+          if (s.status === "active" && s.plan !== "free") return;
+        } catch {
+          /* keep polling */
+        }
+        if (tries < 5) setTimeout(poll, 2000);
+      };
+      poll();
+    } else {
+      toast.error("Payment wasn't completed. You can try again below.");
+    }
+  };
 
   const onSubscribe = async (slug: string) => {
     setBusy(slug);
     try {
-      const updated = await subscribe(slug);
-      setSub(updated);
-      toast.success(`You're on the ${updated.plan_name} plan`);
+      const res = await checkout(slug);
+      if (res.payment_url) {
+        // Paid plan — hand off to Billplz to collect payment.
+        toast.loading("Redirecting to secure payment…", { id: "pay" });
+        window.location.href = res.payment_url;
+        return;
+      }
+      if (res.subscription) {
+        setSub(res.subscription);
+        toast.success(`You're on the ${res.subscription.plan_name} plan`);
+      }
     } catch (err: any) {
       const status = err?.response?.status;
       if (status === 503) toast.error("Online payment isn't enabled yet — contact us to activate a paid plan.");
@@ -147,7 +186,8 @@ export default function BillingPage() {
         })}
       </div>
       <p className="mt-4 text-xs text-slate-500">
-        Online payment is being finalised. Paid plans are activated manually for now — reach out and we&apos;ll switch you over.
+        Paid plans are billed securely through Billplz (FPX / card). Your plan activates automatically once
+        payment is confirmed. Switching to Free takes effect immediately.
       </p>
     </div>
   );
