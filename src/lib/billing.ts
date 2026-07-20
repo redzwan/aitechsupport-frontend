@@ -66,3 +66,33 @@ export async function adminListClients(): Promise<ClientRow[]> {
 export async function adminSetClientPlan(orgId: number, packageSlug: string): Promise<ClientRow> {
   return (await api.put(`/admin/clients/${orgId}/plan`, { package_slug: packageSlug })).data;
 }
+
+// ----- Billplz gateway settings (platform admin) -----
+export type BillplzSettings = {
+  enabled: boolean;
+  sandbox: boolean;
+  api_key_set: boolean;
+  api_key_hint: string | null;
+  x_signature_key_set: boolean;
+  x_signature_key_hint: string | null;
+  collection_id: string;
+  configured: boolean;
+};
+
+export type BillplzUpdate = {
+  enabled?: boolean;
+  sandbox?: boolean;
+  api_key?: string; // blank -> keep existing
+  x_signature_key?: string; // blank -> keep existing
+  collection_id?: string; // "" clears it
+};
+
+export async function getBillplz(): Promise<BillplzSettings> {
+  return (await api.get("/admin/billplz")).data;
+}
+export async function updateBillplz(p: BillplzUpdate): Promise<BillplzSettings> {
+  return (await api.put("/admin/billplz", p)).data;
+}
+export async function testBillplz(): Promise<void> {
+  await api.post("/admin/billplz/test");
+}

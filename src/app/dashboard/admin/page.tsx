@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Boxes, Users, KeyRound, HardDrive, ArrowRight, ShieldAlert, Loader2, LayoutTemplate, FileText } from "lucide-react";
+import { Boxes, Users, KeyRound, HardDrive, ArrowRight, ShieldAlert, Loader2, LayoutTemplate, FileText, CreditCard } from "lucide-react";
 import { fetchMe, type UserProfile } from "@/lib/auth";
 import { adminListClients, type ClientRow } from "@/lib/billing";
 
@@ -47,6 +47,7 @@ export default function AdminHub() {
     { href: "/dashboard/admin/pages", label: "Pages", desc: "About, Privacy, Terms…", icon: FileText },
     { href: "/dashboard/admin/packages", label: "Packages", desc: "Plans you sell", icon: Boxes },
     { href: "/dashboard/admin/clients", label: "Clients", desc: `${clients.length} total · ${paying} paying`, icon: Users },
+    { href: "/dashboard/admin/billing", label: "Payments", desc: "Billplz gateway & sandbox", icon: CreditCard },
     { href: "/dashboard/settings", label: "API Keys & Models", desc: "OpenRouter, Voyage, defaults", icon: KeyRound },
     { href: "/dashboard/admin/storage", label: "Storage", desc: "AIStor bucket for uploads", icon: HardDrive },
   ];
