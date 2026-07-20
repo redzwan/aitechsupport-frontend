@@ -32,3 +32,31 @@ export async function createAgent(p: AgentCreate): Promise<Agent> {
 export async function updateAgent(id: number, p: AgentUpdate): Promise<Agent> {
   return (await api.patch(`/team/agents/${id}`, p)).data;
 }
+
+export type Invite = {
+  id: number;
+  code: string;
+  role: string;
+  max_uses: number | null;
+  uses: number;
+  expires_at: string | null;
+  is_active: boolean;
+  created_at: string | null;
+  join_url: string;
+};
+
+export type InviteCreate = {
+  role?: string;
+  max_uses?: number | null; // null = unlimited
+  expires_in_hours?: number | null; // null = never
+};
+
+export async function listInvites(): Promise<Invite[]> {
+  return (await api.get("/team/invites")).data;
+}
+export async function createInvite(p: InviteCreate): Promise<Invite> {
+  return (await api.post("/team/invites", p)).data;
+}
+export async function revokeInvite(id: number): Promise<void> {
+  await api.delete(`/team/invites/${id}`);
+}

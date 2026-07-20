@@ -2,8 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { Headset, Loader2, ShieldAlert, UserPlus, KeyRound } from "lucide-react";
-import { listAgents, createAgent, updateAgent, type Agent } from "@/lib/team";
+import { Headset, Loader2, ShieldAlert, UserPlus, KeyRound, Ticket, Copy, Link2, Trash2 } from "lucide-react";
+import {
+  listAgents,
+  createAgent,
+  updateAgent,
+  listInvites,
+  createInvite,
+  revokeInvite,
+  type Agent,
+  type Invite,
+} from "@/lib/team";
 
 export default function TeamPage() {
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -17,15 +26,55 @@ export default function TeamPage() {
   const [role, setRole] = useState("agent");
   const [creating, setCreating] = useState(false);
 
+  const [invites, setInvites] = useState<Invite[]>([]);
+  const [inviteRole, setInviteRole] = useState("agent");
+  const [generating, setGenerating] = useState(false);
+
   const load = async () => {
     try {
-      setAgents(await listAgents());
+      const [ags, invs] = await Promise.all([listAgents(), listInvites()]);
+      setAgents(ags);
+      setInvites(invs);
     } catch (e: any) {
       if (e?.response?.status === 403) setForbidden(true);
       else toast.error("Failed to load team");
     } finally {
       setLoading(false);
     }
+  };
+
+  const generate = async () => {
+    setGenerating(true);
+    try {
+      const inv = await createInvite({ role: inviteRole }); // single-use, 7-day (backend defaults)
+      setInvites((p) => [inv, ...p]);
+      toast.success("Invite code created");
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail || "Could not create invite");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const revoke = async (id: number) => {
+    try {
+      await revokeInvite(id);
+      setInvites((p) => p.filter((i) => i.id !== id));
+      toast.success("Invite revoked");
+    } catch {
+      toast.error("Could not revoke");
+    }
+  };
+
+  const copy = (text: string, what: string) => {
+    navigator.clipboard?.writeText(text);
+    toast.success(`${what} copied`);
+  };
+
+  const expiryLabel = (iso: string | null) => {
+    if (!iso) return "no expiry";
+    const d = new Date(iso);
+    return d < new Date() ? "expired" : `expires ${d.toLocaleDateString("en-MY", { month: "short", day: "numeric" })}`;
   };
 
   useEffect(() => {
@@ -134,6 +183,72 @@ export default function TeamPage() {
           {creating ? "Creating…" : "Create login"}
         </button>
       </form>
+
+      {/* Invite links — one-time, expiring */}
+      <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <Ticket size={16} /> Invite by code
+          </div>
+          <span className="text-xs text-slate-400">Single-use · expires in 7 days</span>
+          <div className="ml-auto flex items-center gap-2">
+            <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value)} className={`${inputCls} w-auto`}>
+              <option value="agent">Agent</option>
+              <option value="admin">Admin</option>
+            </select>
+            <button
+              onClick={generate}
+              disabled={generating}
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+            >
+              {generating ? "…" : "Generate code"}
+            </button>
+          </div>
+        </div>
+        {invites.length === 0 ? (
+          <p className="text-sm text-slate-500">
+            No active invites. Generate a code and share it — the person joins your organization from the app or the join link.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {invites.map((inv) => (
+              <li
+                key={inv.id}
+                className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800"
+              >
+                <code className="rounded bg-slate-100 px-2 py-1 text-sm dark:bg-slate-800">{inv.code}</code>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500 dark:bg-slate-800">
+                  {inv.role}
+                </span>
+                <span className="text-xs text-slate-400">
+                  used {inv.uses}
+                  {inv.max_uses != null ? `/${inv.max_uses}` : ""} · {expiryLabel(inv.expires_at)}
+                </span>
+                <div className="ml-auto flex items-center gap-1">
+                  <button
+                    onClick={() => copy(inv.code, "Code")}
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                  >
+                    <Copy size={13} /> Code
+                  </button>
+                  <button
+                    onClick={() => copy(inv.join_url, "Join link")}
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                  >
+                    <Link2 size={13} /> Link
+                  </button>
+                  <button
+                    onClick={() => revoke(inv.id)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-rose-300 px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:border-rose-900 dark:hover:bg-rose-950/40"
+                  >
+                    <Trash2 size={13} /> Revoke
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
         <table className="w-full text-sm">
