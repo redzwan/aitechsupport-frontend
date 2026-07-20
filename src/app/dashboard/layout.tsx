@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Bot, CreditCard, UserCircle, Boxes, Users, KeyRound, Mail, FileText, HardDrive, Receipt, LogOut, Loader2 } from "lucide-react";
+import { LayoutDashboard, Bot, CreditCard, UserCircle, Boxes, Users, KeyRound, Mail, FileText, HardDrive, Receipt, Headset, LogOut, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -17,9 +17,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
+  const isOrgAdmin = user.role === "owner" || user.role === "admin";
   const clientNav = [
     { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
     { href: "/dashboard/bots", label: "Bots", icon: Bot },
+    ...(isOrgAdmin ? [{ href: "/dashboard/team", label: "Support team", icon: Headset }] : []),
     { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
     { href: "/dashboard/account", label: "Account", icon: UserCircle },
   ];

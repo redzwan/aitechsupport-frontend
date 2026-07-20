@@ -1,0 +1,197 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
+import { Headset, Loader2, ShieldAlert, UserPlus, KeyRound } from "lucide-react";
+import { listAgents, createAgent, updateAgent, type Agent } from "@/lib/team";
+
+export default function TeamPage() {
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [forbidden, setForbidden] = useState(false);
+  const [busyId, setBusyId] = useState<number | null>(null);
+
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("agent");
+  const [creating, setCreating] = useState(false);
+
+  const load = async () => {
+    try {
+      setAgents(await listAgents());
+    } catch (e: any) {
+      if (e?.response?.status === 403) setForbidden(true);
+      else toast.error("Failed to load team");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const onCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || password.length < 6) {
+      toast.error("Email and a password (min 6 chars) are required.");
+      return;
+    }
+    setCreating(true);
+    try {
+      const a = await createAgent({ email: email.trim(), full_name: name.trim() || undefined, password, role });
+      setAgents((prev) => [...prev, a]);
+      setEmail("");
+      setName("");
+      setPassword("");
+      setRole("agent");
+      toast.success(`Created ${a.email}`);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || "Could not create agent");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const toggleActive = async (a: Agent) => {
+    setBusyId(a.id);
+    try {
+      const updated = await updateAgent(a.id, { is_active: !a.is_active });
+      setAgents((prev) => prev.map((x) => (x.id === a.id ? updated : x)));
+      toast.success(updated.is_active ? "Reactivated" : "Deactivated");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || "Update failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const resetPassword = async (a: Agent) => {
+    const pw = window.prompt(`Set a new password for ${a.email} (min 6 chars):`);
+    if (pw === null) return;
+    if (pw.length < 6) {
+      toast.error("Password must be at least 6 characters.");
+      return;
+    }
+    setBusyId(a.id);
+    try {
+      await updateAgent(a.id, { password: pw });
+      toast.success("Password reset");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || "Reset failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  if (loading)
+    return (
+      <div className="flex h-64 items-center justify-center text-slate-500">
+        <Loader2 className="animate-spin" />
+      </div>
+    );
+
+  if (forbidden)
+    return (
+      <div className="mx-auto max-w-lg rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+        <div className="flex items-center gap-2 font-medium">
+          <ShieldAlert size={18} /> Owner or admin only
+        </div>
+        <p className="mt-2 text-sm">Ask your organization owner to manage support agents.</p>
+      </div>
+    );
+
+  const inputCls =
+    "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-700 dark:bg-slate-800";
+
+  return (
+    <div className="mx-auto max-w-4xl">
+      <div className="mb-6 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950">
+          <Headset size={20} />
+        </div>
+        <div>
+          <h1 className="text-2xl font-semibold">Support team</h1>
+          <p className="text-sm text-slate-500">Create logins for the people who answer your customers in the agent app.</p>
+        </div>
+      </div>
+
+      <form onSubmit={onCreate} className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+        <div className="mb-3 flex items-center gap-2 text-sm font-medium">
+          <UserPlus size={16} /> Add an agent
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <input value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} placeholder="agent@email.com" type="email" autoComplete="off" />
+          <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="Display name (optional)" />
+          <input value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls} placeholder="Temporary password" type="password" autoComplete="new-password" />
+          <select value={role} onChange={(e) => setRole(e.target.value)} className={inputCls}>
+            <option value="agent">Agent — answers chats</option>
+            <option value="admin">Admin — answers + manages team</option>
+          </select>
+        </div>
+        <button type="submit" disabled={creating} className="mt-4 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60">
+          {creating ? "Creating…" : "Create login"}
+        </button>
+      </form>
+
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500 dark:bg-slate-800/50">
+            <tr>
+              <th className="px-4 py-3">Name</th>
+              <th className="px-4 py-3">Email</th>
+              <th className="px-4 py-3">Role</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            {agents.map((a) => (
+              <tr key={a.id} className="bg-white dark:bg-slate-900">
+                <td className="px-4 py-3 font-medium">{a.full_name || "—"}</td>
+                <td className="px-4 py-3 text-slate-500">{a.email}</td>
+                <td className="px-4 py-3">{a.role}</td>
+                <td className="px-4 py-3">
+                  {a.is_active ? (
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">active</span>
+                  ) : (
+                    <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-500 dark:bg-slate-800">disabled</span>
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center justify-end gap-2">
+                    {a.role === "owner" ? (
+                      <span className="text-xs text-slate-400">owner</span>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => resetPassword(a)}
+                          disabled={busyId === a.id}
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800"
+                        >
+                          <KeyRound size={13} /> Reset
+                        </button>
+                        <button
+                          onClick={() => toggleActive(a)}
+                          disabled={busyId === a.id}
+                          className={`rounded-lg px-2.5 py-1.5 text-xs font-medium disabled:opacity-60 ${
+                            a.is_active
+                              ? "border border-rose-300 text-rose-600 hover:bg-rose-50 dark:border-rose-900 dark:hover:bg-rose-950/40"
+                              : "border border-emerald-300 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-900 dark:hover:bg-emerald-950/40"
+                          }`}
+                        >
+                          {a.is_active ? "Deactivate" : "Reactivate"}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
