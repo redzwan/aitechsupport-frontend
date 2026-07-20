@@ -96,6 +96,33 @@ export type BillplzUpdate = {
   collection_id?: string; // "" clears it
 };
 
+export type PaymentRow = {
+  id: number;
+  organization_id: number;
+  organization_name: string | null;
+  plan_slug: string;
+  amount_cents: number;
+  status: string; // pending | paid | failed
+  sandbox: boolean;
+  billplz_bill_id: string | null;
+  paid_at: string | null;
+  created_at: string | null;
+};
+export type PaymentsSummary = {
+  total: number;
+  paid: number;
+  pending: number;
+  failed: number;
+  live_revenue_cents: number;
+};
+export type PaymentsResult = { summary: PaymentsSummary; payments: PaymentRow[] };
+
+export async function adminListPayments(status?: string, limit = 200): Promise<PaymentsResult> {
+  const params: Record<string, string | number> = { limit };
+  if (status) params.status = status;
+  return (await api.get("/admin/payments", { params })).data;
+}
+
 export async function getBillplz(): Promise<BillplzSettings> {
   return (await api.get("/admin/billplz")).data;
 }

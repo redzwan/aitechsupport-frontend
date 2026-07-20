@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Bot, CreditCard, UserCircle, Boxes, Users, KeyRound, Mail, FileText, HardDrive, LogOut, Loader2 } from "lucide-react";
+import { LayoutDashboard, Bot, CreditCard, UserCircle, Boxes, Users, KeyRound, Mail, FileText, HardDrive, Receipt, LogOut, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -28,6 +28,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: "/dashboard/admin/packages", label: "Packages", icon: Boxes },
     { href: "/dashboard/admin/clients", label: "Clients", icon: Users },
     { href: "/dashboard/admin/billing", label: "Payments (Billplz)", icon: CreditCard },
+    { href: "/dashboard/admin/payments", label: "Transactions", icon: Receipt },
     { href: "/dashboard/settings", label: "API Keys & Models", icon: KeyRound },
     { href: "/dashboard/admin/storage", label: "Storage", icon: HardDrive },
     { href: "/dashboard/admin/email", label: "Email (SMTP)", icon: Mail },
