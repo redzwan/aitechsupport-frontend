@@ -166,10 +166,25 @@ export default function WidgetPage() {
           <h1 className="text-2xl font-semibold">Website widget</h1>
           <p className="mt-1 text-sm text-slate-500">{bot ? bot.name : `Bot #${botId}`} — embed a chat bubble on your site.</p>
         </div>
-        <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium">
-          <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} className="h-4 w-4 accent-indigo-600" />
-          {enabled ? "Enabled" : "Disabled"}
-        </label>
+        <div className="flex items-center gap-2.5 text-sm font-medium">
+          <span className={enabled ? "" : "text-slate-400"}>{enabled ? "Enabled" : "Disabled"}</span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={enabled}
+            aria-label={enabled ? "Disable widget" : "Enable widget"}
+            onClick={() => setEnabled((v) => !v)}
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+              enabled ? "bg-indigo-600" : "bg-slate-600"
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                enabled ? "translate-x-5" : "translate-x-0.5"
+              }`}
+            />
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
