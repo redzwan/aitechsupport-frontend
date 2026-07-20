@@ -40,3 +40,8 @@ export async function updateTemplate(
 ): Promise<EmailTemplate> {
   return (await api.put(`/admin/email-templates/${key}`, p)).data;
 }
+
+export type EmailPreview = { subject: string; html: string };
+export async function previewTemplate(subject: string, body_html: string): Promise<EmailPreview> {
+  return (await api.post("/admin/email-templates/preview", { subject, body_html })).data;
+}

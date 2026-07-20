@@ -3,27 +3,13 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { FileText, Loader2, ShieldAlert, ChevronRight, Eye } from "lucide-react";
-import { listTemplates, updateTemplate, type EmailTemplate } from "@/lib/email";
+import { listTemplates, updateTemplate, previewTemplate, type EmailTemplate } from "@/lib/email";
 
 const VARS: Record<string, string[]> = {
   welcome: ["{name}", "{email}", "{dashboard_url}"],
   password_changed: ["{name}", "{email}"],
   quota_warning: ["{name}", "{plan}", "{used_pct}", "{tokens_remaining}", "{dashboard_url}"],
 };
-
-// Sample values so the live preview renders with realistic content
-// instead of the raw {placeholder} tokens.
-const SAMPLES: Record<string, string> = {
-  "{name}": "Jane Doe",
-  "{email}": "jane@example.com",
-  "{dashboard_url}": "https://app.aitechsupport.my/dashboard",
-  "{plan}": "Pro",
-  "{used_pct}": "85",
-  "{tokens_remaining}": "15,000",
-};
-
-const fillSamples = (html: string) =>
-  Object.entries(SAMPLES).reduce((acc, [token, value]) => acc.split(token).join(value), html);
 
 export default function EmailTemplatesPage() {
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
@@ -34,6 +20,25 @@ export default function EmailTemplatesPage() {
 
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+
+  // Server-rendered preview (content wrapped in the branded shell, sample values filled).
+  const [preview, setPreview] = useState<{ subject: string; html: string }>({ subject: "", html: "" });
+
+  useEffect(() => {
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const p = await previewTemplate(subject, body);
+        if (!cancelled) setPreview(p);
+      } catch {
+        /* keep last good preview */
+      }
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [subject, body]);
 
   useEffect(() => {
     listTemplates()
@@ -141,19 +146,19 @@ export default function EmailTemplatesPage() {
               <div className="mb-1 flex items-center gap-1.5 text-sm font-medium">
                 <Eye size={15} className="text-slate-400" />
                 Preview
-                <span className="text-xs font-normal text-slate-400">(sample values shown)</span>
+                <span className="text-xs font-normal text-slate-400">(full branded email · sample values)</span>
               </div>
               <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
                 <div className="border-b border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800/60">
                   <div className="text-xs text-slate-400">Subject</div>
                   <div className="truncate text-sm font-medium text-slate-700 dark:text-slate-200">
-                    {fillSamples(subject) || <span className="text-slate-400">No subject</span>}
+                    {preview.subject || <span className="text-slate-400">No subject</span>}
                   </div>
                 </div>
                 <iframe
                   title="Email preview"
                   sandbox=""
-                  srcDoc={fillSamples(body)}
+                  srcDoc={preview.html}
                   className="h-96 w-full border-0 bg-white"
                 />
               </div>
