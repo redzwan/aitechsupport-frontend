@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { Headset, Loader2, ShieldAlert, UserPlus, KeyRound, Ticket, Copy, Link2, Trash2 } from "lucide-react";
+import { Headset, Loader2, ShieldAlert, UserPlus, KeyRound, Ticket, Copy, Link2, Trash2, LogIn } from "lucide-react";
+import { acceptInvite } from "@/lib/auth";
 import {
   listAgents,
   createAgent,
@@ -29,6 +30,9 @@ export default function TeamPage() {
   const [invites, setInvites] = useState<Invite[]>([]);
   const [inviteRole, setInviteRole] = useState("agent");
   const [generating, setGenerating] = useState(false);
+
+  const [joinCode, setJoinCode] = useState("");
+  const [joining, setJoining] = useState(false);
 
   const load = async () => {
     try {
@@ -69,6 +73,20 @@ export default function TeamPage() {
   const copy = (text: string, what: string) => {
     navigator.clipboard?.writeText(text);
     toast.success(`${what} copied`);
+  };
+
+  const joinOrg = async () => {
+    if (!joinCode.trim()) return;
+    setJoining(true);
+    try {
+      await acceptInvite(joinCode.trim());
+      toast.success("Joined the organization");
+      // Your org changed — reload the whole dashboard so everything re-scopes.
+      window.location.href = "/dashboard";
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail || "Could not join with that code");
+      setJoining(false);
+    }
   };
 
   const expiryLabel = (iso: string | null) => {
@@ -306,6 +324,35 @@ export default function TeamPage() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Join another organization (moves this account into a colleague's org) */}
+      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+        <div className="mb-1 flex items-center gap-2 text-sm font-medium">
+          <LogIn size={16} /> Join another organization
+        </div>
+        <p className="mb-3 text-xs text-slate-500">
+          Have an invite code from another team? Enter it to move your account into their organization.
+          If you own an organization that already has bots or members, hand it over first.
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={joinCode}
+            onChange={(e) => setJoinCode(e.target.value)}
+            placeholder="Invite code"
+            className={`${inputCls} max-w-xs`}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") joinOrg();
+            }}
+          />
+          <button
+            onClick={joinOrg}
+            disabled={joining || !joinCode.trim()}
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+          >
+            {joining ? "Joining…" : "Join"}
+          </button>
+        </div>
       </div>
     </div>
   );

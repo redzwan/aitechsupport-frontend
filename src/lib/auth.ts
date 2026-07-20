@@ -77,3 +77,8 @@ export async function changePassword(currentPassword: string, newPassword: strin
     new_password: newPassword,
   });
 }
+
+/** Redeem an invite code as the signed-in user → moved into that organization. */
+export async function acceptInvite(code: string): Promise<UserProfile> {
+  return (await api.post("/auth/accept-invite", { code })).data;
+}
