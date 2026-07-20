@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { Headset, Loader2, ShieldAlert, UserPlus, KeyRound, Ticket, Copy, Link2, Trash2, LogIn } from "lucide-react";
+import { Headset, Loader2, ShieldAlert, UserPlus, KeyRound, Ticket, Copy, Link2, Trash2, LogIn, Smartphone, Download } from "lucide-react";
 import { acceptInvite } from "@/lib/auth";
 import {
   listAgents,
@@ -181,6 +181,32 @@ export default function TeamPage() {
         <div>
           <h1 className="text-2xl font-semibold">Support team</h1>
           <p className="text-sm text-slate-500">Create logins for the people who answer your customers in the agent app.</p>
+        </div>
+      </div>
+
+      {/* Get the Android agent app */}
+      <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center">
+        <img
+          src="/downloads/support-agent-qr.svg"
+          alt="Scan to download the Android app"
+          width={132}
+          height={132}
+          className="h-[132px] w-[132px] shrink-0 rounded-lg border border-slate-200 bg-white p-1 dark:border-slate-700"
+        />
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <Smartphone size={16} /> Get the Android app
+          </div>
+          <p className="mt-1 text-sm text-slate-500">
+            Scan the QR code with your Android phone, or download the APK below, to test the Support Agent
+            app on your device. You may need to allow installs from your browser (unknown sources).
+          </p>
+          <a
+            href="/downloads/support-agent.apk"
+            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+          >
+            <Download size={15} /> Download APK
+          </a>
         </div>
       </div>
 
