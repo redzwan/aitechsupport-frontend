@@ -3,8 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
-import { Bot as BotIcon, Plus, Loader2, BookOpen, MessageSquare, Inbox as InboxIcon, BarChart3 } from "lucide-react";
-import { listBots, createBot, listModels, type Bot, type ModelOption } from "@/lib/bots";
+import { Bot as BotIcon, Plus, Loader2, BookOpen, MessageSquare, Inbox as InboxIcon, BarChart3, Pencil } from "lucide-react";
+import { listBots, createBot, updateBot, listModels, type Bot, type ModelOption } from "@/lib/bots";
+
+/** Always a string: FastAPI returns `detail` as a list for validation errors,
+ *  and handing that to toast/JSX would crash React. */
+function errMsg(e: any, fallback: string): string {
+  const d = e?.response?.data?.detail;
+  if (typeof d === "string") return d;
+  if (Array.isArray(d)) return d.map((x) => x?.msg).filter(Boolean).join("; ") || fallback;
+  return fallback;
+}
 
 export default function BotsPage() {
   const [bots, setBots] = useState<Bot[]>([]);
@@ -16,6 +25,42 @@ export default function BotsPage() {
   const [name, setName] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [chatModel, setChatModel] = useState("");
+
+  // Inline rename
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [draftName, setDraftName] = useState("");
+  const [savingId, setSavingId] = useState<number | null>(null);
+
+  const startEdit = (b: Bot) => {
+    setEditingId(b.id);
+    setDraftName(b.name);
+  };
+  const cancelEdit = () => {
+    setEditingId(null);
+    setDraftName("");
+  };
+
+  // Enter blurs the input, so this is the single save path (Escape clears the
+  // draft first, which makes the resulting blur a no-op).
+  const saveName = async (b: Bot) => {
+    if (savingId === b.id) return;
+    const next = draftName.trim();
+    if (!next || next === b.name) {
+      cancelEdit();
+      return;
+    }
+    setSavingId(b.id);
+    try {
+      const updated = await updateBot(b.id, { name: next });
+      setBots((prev) => prev.map((x) => (x.id === b.id ? updated : x)));
+      cancelEdit();
+      toast.success("Bot renamed");
+    } catch (err: any) {
+      toast.error(errMsg(err, "Failed to rename bot"));
+    } finally {
+      setSavingId(null);
+    }
+  };
 
   useEffect(() => {
     Promise.all([listBots(), listModels()])
@@ -118,7 +163,39 @@ export default function BotsPage() {
                   <BotIcon size={18} />
                 </div>
                 <div>
-                  <div className="font-medium">{b.name}</div>
+                  {editingId === b.id ? (
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        autoFocus
+                        value={draftName}
+                        onChange={(e) => setDraftName(e.target.value)}
+                        onBlur={() => saveName(b)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            e.currentTarget.blur();
+                          } else if (e.key === "Escape") {
+                            e.preventDefault();
+                            cancelEdit();
+                          }
+                        }}
+                        disabled={savingId === b.id}
+                        aria-label="Bot name"
+                        className="w-52 rounded-md border border-indigo-500 bg-transparent px-2 py-0.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/30 disabled:opacity-60"
+                      />
+                      {savingId === b.id && <Loader2 size={14} className="animate-spin text-slate-400" />}
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => startEdit(b)}
+                      title="Rename bot"
+                      className="group inline-flex items-center gap-1.5 font-medium hover:text-indigo-600"
+                    >
+                      {b.name}
+                      <Pencil size={12} className="opacity-0 transition group-hover:opacity-60" />
+                    </button>
+                  )}
                   <div className="text-xs text-slate-500">Model: {modelLabel(b.chat_model)}</div>
                 </div>
               </div>

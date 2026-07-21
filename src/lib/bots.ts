@@ -35,6 +35,21 @@ export async function createBot(payload: {
   return res.data;
 }
 
+/** Partial update — only the supplied fields change. */
+export async function updateBot(
+  botId: number,
+  payload: {
+    name?: string;
+    system_prompt?: string;
+    fallback_message?: string;
+    chat_model?: string | null;
+    is_active?: boolean;
+  }
+): Promise<Bot> {
+  const res = await api.patch(`/bots/${botId}`, payload);
+  return res.data;
+}
+
 export async function listModels(): Promise<ModelOption[]> {
   const res = await api.get("/bots/models");
   return res.data;
