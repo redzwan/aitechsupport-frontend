@@ -19,7 +19,7 @@ type Release = { version?: string; build?: number; downloads?: Record<string, st
 
 const DESKTOP = [
   { key: "macos", label: "macOS", note: ".pkg — double-click to install", Icon: Laptop },
-  { key: "windows", label: "Windows", note: ".zip — unzip, run Support Agent", Icon: Monitor },
+  { key: "windows", label: "Windows", note: "setup.exe — installs to Program Files", Icon: Monitor },
   { key: "linux", label: "Linux", note: ".tar.gz — extract, run ./agent_app", Icon: Terminal },
 ] as const;
 
@@ -276,8 +276,9 @@ export default function TeamPage() {
                 both Apple Silicon and Intel.
               </p>
               <p>
-                <b>Windows</b> — not code-signed yet, so unzip, run <b>Support Agent.exe</b>, then
-                click <b>More info</b> → <b>Run anyway</b> on the SmartScreen prompt.
+                <b>Windows</b> — run the installer and follow the wizard (it installs to Program
+                Files and adds a Start Menu shortcut). It isn&apos;t code-signed yet, so click{" "}
+                <b>More info</b> → <b>Run anyway</b> on the SmartScreen prompt.
               </p>
               <p>
                 <b>Linux</b> — extract the archive and run <b>./agent_app</b>.
