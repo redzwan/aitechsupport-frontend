@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Boxes, Users, KeyRound, HardDrive, ArrowRight, ShieldAlert, Loader2, LayoutTemplate, FileText, CreditCard, Receipt } from "lucide-react";
+import { Boxes, Users, KeyRound, HardDrive, ArrowRight, ShieldAlert, Loader2, LayoutTemplate, FileText, CreditCard, Receipt, LifeBuoy } from "lucide-react";
 import { fetchMe, type UserProfile } from "@/lib/auth";
 import { adminListClients, type ClientRow } from "@/lib/billing";
 
@@ -51,6 +51,7 @@ export default function AdminHub() {
     { href: "/dashboard/admin/payments", label: "Transactions", desc: "Bills & revenue", icon: Receipt },
     { href: "/dashboard/settings", label: "API Keys & Models", desc: "OpenRouter, Voyage, defaults", icon: KeyRound },
     { href: "/dashboard/admin/storage", label: "Storage", desc: "AIStor bucket for uploads", icon: HardDrive },
+    { href: "/dashboard/admin/support", label: "Support widget", desc: "Chat bubble on our own site", icon: LifeBuoy },
   ];
 
   return (
