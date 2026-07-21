@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { Headset, Loader2, ShieldAlert, UserPlus, KeyRound, Ticket, Copy, Link2, Trash2, LogIn, Smartphone, Download } from "lucide-react";
+import { Headset, Loader2, ShieldAlert, UserPlus, KeyRound, Ticket, Copy, Link2, Trash2, LogIn, Smartphone, Download, Laptop, Monitor, Terminal } from "lucide-react";
 import { acceptInvite } from "@/lib/auth";
 import {
   listAgents,
@@ -14,6 +14,14 @@ import {
   type Agent,
   type Invite,
 } from "@/lib/team";
+
+type Release = { version?: string; build?: number; downloads?: Record<string, string> };
+
+const DESKTOP = [
+  { key: "macos", label: "macOS", note: ".dmg — drag to Applications", Icon: Laptop },
+  { key: "windows", label: "Windows", note: ".zip — unzip, run Support Agent", Icon: Monitor },
+  { key: "linux", label: "Linux", note: ".tar.gz — extract, run ./agent_app", Icon: Terminal },
+] as const;
 
 export default function TeamPage() {
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -33,6 +41,17 @@ export default function TeamPage() {
 
   const [joinCode, setJoinCode] = useState("");
   const [joining, setJoining] = useState(false);
+
+  // Desktop builds are read from the release manifest, so adding a platform is
+  // just an upload + a manifest edit — no redeploy of this page.
+  const [release, setRelease] = useState<Release | null>(null);
+  useEffect(() => {
+    fetch("/downloads/latest.json", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => setRelease(r))
+      .catch(() => {});
+  }, []);
+  const desktops = DESKTOP.filter((d) => release?.downloads?.[d.key]);
 
   const load = async () => {
     try {
@@ -208,6 +227,54 @@ export default function TeamPage() {
             <Download size={15} /> Download APK
           </a>
         </div>
+      </div>
+
+      {/* Desktop installers */}
+      <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <Laptop size={16} /> Install on your computer
+          </div>
+          {release?.version && (
+            <span className="text-xs text-slate-400">
+              v{release.version}
+              {release.build ? ` (${release.build})` : ""}
+            </span>
+          )}
+        </div>
+        <p className="mt-1 text-sm text-slate-500">
+          Run the Support Agent app on your desktop so your team can answer chats without a browser.
+        </p>
+
+        {desktops.length === 0 ? (
+          <p className="mt-3 text-sm text-slate-400">
+            Desktop builds are being prepared — they&apos;ll appear here automatically once published.
+          </p>
+        ) : (
+          <>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              {desktops.map(({ key, label, note, Icon }) => (
+                <a
+                  key={key}
+                  href={release!.downloads![key]}
+                  className="flex items-start gap-3 rounded-xl border border-slate-200 px-4 py-3 transition hover:border-indigo-300 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+                >
+                  <Icon size={18} className="mt-0.5 shrink-0 text-indigo-600" />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 font-medium">
+                      {label} <Download size={13} className="text-slate-400" />
+                    </div>
+                    <div className="text-xs text-slate-500">{note}</div>
+                  </div>
+                </a>
+              ))}
+            </div>
+            <p className="mt-3 text-xs text-slate-400">
+              These builds aren&apos;t code-signed yet, so the first launch shows a warning: on macOS
+              right-click the app → <b>Open</b>; on Windows click <b>More info</b> → <b>Run anyway</b>.
+            </p>
+          </>
+        )}
       </div>
 
       <form onSubmit={onCreate} className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
