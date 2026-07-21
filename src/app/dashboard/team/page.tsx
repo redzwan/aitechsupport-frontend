@@ -18,7 +18,7 @@ import {
 type Release = { version?: string; build?: number; downloads?: Record<string, string> };
 
 const DESKTOP = [
-  { key: "macos", label: "macOS", note: ".dmg — drag to Applications", Icon: Laptop },
+  { key: "macos", label: "macOS", note: ".pkg — double-click to install", Icon: Laptop },
   { key: "windows", label: "Windows", note: ".zip — unzip, run Support Agent", Icon: Monitor },
   { key: "linux", label: "Linux", note: ".tar.gz — extract, run ./agent_app", Icon: Terminal },
 ] as const;
@@ -271,9 +271,9 @@ export default function TeamPage() {
             </div>
             <div className="mt-3 space-y-1.5 text-xs text-slate-400">
               <p>
-                <b>macOS</b> — signed &amp; notarised by Apple: open the .dmg, drag{" "}
-                <b>Support Agent</b> into Applications, and launch it. No security warning. Runs
-                natively on both Apple Silicon and Intel.
+                <b>macOS</b> — signed &amp; notarised by Apple. Double-click the .pkg and it installs
+                itself into Applications: no dragging, and no security warnings. Runs natively on
+                both Apple Silicon and Intel.
               </p>
               <p>
                 <b>Windows</b> — not code-signed yet, so unzip, run <b>Support Agent.exe</b>, then
