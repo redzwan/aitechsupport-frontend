@@ -33,9 +33,14 @@ export async function saveGscConfig(
   siteUrl: string,
   saJson: string
 ): Promise<{ message: string; client_email?: string; site_url: string }> {
-  const form = new FormData();
-  form.append("site_url", siteUrl);
-  form.append("service_account_json", saJson);
-  // Let the browser/axios set multipart Content-Type (with boundary) itself.
-  return (await api.post("/admin/seo/gsc-config", form)).data;
+  // The shared api client defaults to application/json, which mangles FormData;
+  // the backend's Form(...) also accepts urlencoded, so send that explicitly.
+  const body = new URLSearchParams();
+  body.append("site_url", siteUrl);
+  body.append("service_account_json", saJson);
+  return (
+    await api.post("/admin/seo/gsc-config", body, {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    })
+  ).data;
 }

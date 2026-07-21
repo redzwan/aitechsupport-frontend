@@ -29,7 +29,21 @@ import {
 } from "@/lib/adminSeo";
 
 const SITE_URL = "https://aitechsupport.my";
-const apiErr = (e: any, fb = "Something went wrong") => e?.response?.data?.detail || fb;
+
+// Always return a STRING. FastAPI validation errors return `detail` as a list of
+// objects; passing that to toast/JSX would crash React ("Objects are not valid
+// as a React child").
+function apiErr(e: any, fb = "Something went wrong"): string {
+  const d = e?.response?.data?.detail;
+  if (typeof d === "string") return d;
+  if (Array.isArray(d)) {
+    const msg = d.map((x) => x?.msg || x?.detail).filter(Boolean).join("; ");
+    if (msg) return msg;
+  } else if (d && typeof d === "object") {
+    if (typeof d.msg === "string") return d.msg;
+  }
+  return typeof e?.message === "string" ? e.message : fb;
+}
 
 const ISSUES = { meta: "No meta description", thin: "Thin content" } as const;
 
