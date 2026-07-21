@@ -269,10 +269,22 @@ export default function TeamPage() {
                 </a>
               ))}
             </div>
-            <p className="mt-3 text-xs text-slate-400">
-              These builds aren&apos;t code-signed yet, so the first launch shows a warning: on macOS
-              right-click the app → <b>Open</b>; on Windows click <b>More info</b> → <b>Run anyway</b>.
-            </p>
+            <div className="mt-3 space-y-1.5 text-xs text-slate-400">
+              <p>
+                These builds aren&apos;t notarised yet, so your OS blocks them on first launch.
+              </p>
+              <p>
+                <b>macOS</b> — drag <b>Support Agent</b> into Applications, then run this once in
+                Terminal (macOS gives no &ldquo;Open Anyway&rdquo; button for un-notarised apps):
+              </p>
+              <code className="block overflow-x-auto rounded-md bg-slate-100 px-2.5 py-1.5 font-mono text-[11px] text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                xattr -dr com.apple.quarantine &quot;/Applications/Support Agent.app&quot;
+              </code>
+              <p>
+                <b>Windows</b> — unzip, run <b>Support Agent.exe</b>, then click <b>More info</b> →{" "}
+                <b>Run anyway</b> on the SmartScreen prompt.
+              </p>
+            </div>
           </>
         )}
       </div>
