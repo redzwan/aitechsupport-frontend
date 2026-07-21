@@ -271,18 +271,16 @@ export default function TeamPage() {
             </div>
             <div className="mt-3 space-y-1.5 text-xs text-slate-400">
               <p>
-                These builds aren&apos;t notarised yet, so your OS blocks them on first launch.
+                <b>macOS</b> — signed &amp; notarised by Apple: open the .dmg, drag{" "}
+                <b>Support Agent</b> into Applications, and launch it. No security warning. Runs
+                natively on both Apple Silicon and Intel.
               </p>
               <p>
-                <b>macOS</b> — drag <b>Support Agent</b> into Applications, then run this once in
-                Terminal (macOS gives no &ldquo;Open Anyway&rdquo; button for un-notarised apps):
+                <b>Windows</b> — not code-signed yet, so unzip, run <b>Support Agent.exe</b>, then
+                click <b>More info</b> → <b>Run anyway</b> on the SmartScreen prompt.
               </p>
-              <code className="block overflow-x-auto rounded-md bg-slate-100 px-2.5 py-1.5 font-mono text-[11px] text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                xattr -dr com.apple.quarantine &quot;/Applications/Support Agent.app&quot;
-              </code>
               <p>
-                <b>Windows</b> — unzip, run <b>Support Agent.exe</b>, then click <b>More info</b> →{" "}
-                <b>Run anyway</b> on the SmartScreen prompt.
+                <b>Linux</b> — extract the archive and run <b>./agent_app</b>.
               </p>
             </div>
           </>
