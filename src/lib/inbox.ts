@@ -20,6 +20,35 @@ export interface ConversationMessage {
   content: string;
   sender_user_id: number | null;
   created_at: string | null;
+  sender_name?: string | null;
+  /** Short-lived presigned URL, refreshed on each poll. Null once the 90-day
+   *  retention rule has expired the object — render a placeholder, not an error. */
+  image_url?: string | null;
+  image_mime?: string | null;
+}
+
+export interface UploadedImage {
+  image_key: string;
+  url: string;
+  mime: string;
+  size: number;
+}
+
+/** Upload an image to attach to the next agent reply in this conversation. */
+export async function uploadConversationImage(
+  botId: number,
+  convId: number,
+  file: File
+): Promise<UploadedImage> {
+  const form = new FormData();
+  form.append("file", file);
+  // The shared client defaults to application/json. Setting "multipart/form-data"
+  // by hand omits the boundary and the server can't parse it, so clear the header
+  // entirely and let the browser generate `multipart/form-data; boundary=…`.
+  const { data } = await api.post(`/bots/${botId}/conversations/${convId}/upload`, form, {
+    headers: { "Content-Type": undefined as unknown as string },
+  });
+  return data;
 }
 
 export async function claimConversation(botId: number, convId: number): Promise<Conversation> {
@@ -27,8 +56,16 @@ export async function claimConversation(botId: number, convId: number): Promise<
   return data;
 }
 
-export async function replyToConversation(botId: number, convId: number, content: string): Promise<ConversationMessage> {
-  const { data } = await api.post(`/bots/${botId}/conversations/${convId}/reply`, { content });
+export async function replyToConversation(
+  botId: number,
+  convId: number,
+  content: string,
+  imageKey?: string
+): Promise<ConversationMessage> {
+  const { data } = await api.post(`/bots/${botId}/conversations/${convId}/reply`, {
+    content,
+    image_key: imageKey,
+  });
   return data;
 }
 

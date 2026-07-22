@@ -4,13 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "react-hot-toast";
-import { ArrowLeft, BookOpen, MessageSquare, Inbox as InboxIcon, BarChart3, Loader2, Mail, User as UserIcon, CheckCircle2, Hand, LogOut, Send } from "lucide-react";
+import { ArrowLeft, BookOpen, MessageSquare, Inbox as InboxIcon, BarChart3, Loader2, Mail, User as UserIcon, CheckCircle2, Hand, LogOut, Send, ImagePlus, X } from "lucide-react";
 import {
   listConversations,
   getConversationMessages,
   updateConversationStatus,
   claimConversation,
   replyToConversation,
+  uploadConversationImage,
   releaseConversation,
   type Conversation,
   type ConversationMessage,
@@ -48,6 +49,8 @@ export default function InboxPage() {
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
+  const [attachment, setAttachment] = useState<File | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const selectedId = selected?.id;
 
@@ -165,20 +168,42 @@ export default function InboxPage() {
     }
   };
 
+  const pickImage = (f: File | null) => {
+    if (!f) return;
+    if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(f.type)) {
+      toast.error("Only PNG, JPEG, WebP or GIF images are supported");
+      return;
+    }
+    if (f.size > 5 * 1024 * 1024) {
+      toast.error("That image is too large — the limit is 5MB");
+      return;
+    }
+    setAttachment(f);
+  };
+
   const send = async () => {
-    if (!selected || !reply.trim() || sending) return;
+    // An image on its own is a valid reply, so text isn't required when one is staged.
+    if (!selected || (!reply.trim() && !attachment) || sending) return;
     setSending(true);
     const text = reply.trim();
     setReply("");
     try {
-      const msg = await replyToConversation(botId, selected.id, text);
+      let imageKey: string | undefined;
+      if (attachment) {
+        imageKey = (await uploadConversationImage(botId, selected.id, attachment)).image_key;
+        setAttachment(null);
+      }
+      const msg = await replyToConversation(botId, selected.id, text, imageKey);
       setMessages((prev) => [...prev, msg]);
       setSelected((s) => (s ? { ...s, status: "human", assigned_user_id: msg.sender_user_id } : s));
       refresh().catch(() => {});
     } catch (err: any) {
       setReply(text);
+      const detail = err?.response?.data?.detail;
       if (err?.response?.status === 403) toast.error("This conversation is handled by another agent");
-      else toast.error("Failed to send");
+      else if (err?.response?.status === 413) toast.error("That image is too large — the limit is 5MB");
+      else if (err?.response?.status === 415) toast.error("That file type isn't supported");
+      else toast.error(typeof detail === "string" ? detail : "Failed to send");
     } finally {
       setSending(false);
     }
@@ -292,6 +317,26 @@ export default function InboxPage() {
                     <div key={m.id} className={`flex ${m.role === "agent" ? "justify-end" : "justify-start"}`}>
                       <div className={`max-w-[85%] whitespace-pre-wrap rounded-xl px-3 py-2 text-sm ${m.role === "agent" ? "bg-indigo-600 text-white" : m.role === "assistant" ? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200" : "border border-slate-200 bg-white text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"}`}>
                         {m.role === "assistant" && <div className="mb-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">bot</div>}
+                        {m.image_url && (
+                          <a href={m.image_url} target="_blank" rel="noopener noreferrer" className="mb-1 block">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={m.image_url}
+                              alt="Attachment"
+                              className="max-h-56 max-w-full rounded-lg border border-black/10"
+                              onError={(e) => {
+                                // Expired by the 90-day rule — show a caption, not a broken icon.
+                                const el = e.currentTarget;
+                                el.replaceWith(
+                                  Object.assign(document.createElement("div"), {
+                                    className: "text-xs italic opacity-70",
+                                    textContent: "Image unavailable",
+                                  })
+                                );
+                              }}
+                            />
+                          </a>
+                        )}
                         {m.content}
                       </div>
                     </div>
@@ -300,7 +345,35 @@ export default function InboxPage() {
                 </div>
 
                 {canReply ? (
-                  <form onSubmit={(e) => { e.preventDefault(); void send(); }} className="flex gap-2 border-t border-slate-100 p-3 dark:border-slate-800">
+                  <form onSubmit={(e) => { e.preventDefault(); void send(); }} className="border-t border-slate-100 p-3 dark:border-slate-800">
+                    {attachment && (
+                      <div className="mb-2 flex items-center gap-2 rounded-lg border border-slate-200 px-2 py-1.5 dark:border-slate-700">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={URL.createObjectURL(attachment)} alt="" className="h-9 w-9 rounded object-cover" />
+                        <span className="min-w-0 flex-1 truncate text-xs text-slate-500">{attachment.name}</span>
+                        <button type="button" onClick={() => setAttachment(null)} aria-label="Remove image" className="text-slate-400 hover:text-slate-600">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      className="hidden"
+                      onChange={(e) => { pickImage(e.target.files?.[0] ?? null); e.target.value = ""; }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileRef.current?.click()}
+                      disabled={sending}
+                      title="Attach an image"
+                      aria-label="Attach an image"
+                      className="rounded-lg border border-slate-300 px-2.5 text-slate-500 hover:border-indigo-400 hover:text-indigo-600 disabled:opacity-50 dark:border-slate-700"
+                    >
+                      <ImagePlus size={16} />
+                    </button>
                     <textarea
                       value={reply}
                       onChange={(e) => setReply(e.target.value)}
@@ -309,7 +382,8 @@ export default function InboxPage() {
                       placeholder={selected.status === "needs_human" ? "Reply to take over…" : "Type a reply…"}
                       className="max-h-24 flex-1 resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-700 dark:bg-slate-800"
                     />
-                    <button type="submit" disabled={sending || !reply.trim()} className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"><Send size={15} /></button>
+                    <button type="submit" disabled={sending || (!reply.trim() && !attachment)} className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"><Send size={15} /></button>
+                    </div>
                   </form>
                 ) : (
                   <div className="border-t border-slate-100 p-3 text-center text-xs text-slate-400 dark:border-slate-800">
