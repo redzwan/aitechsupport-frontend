@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
-import { Bot as BotIcon, Plus, Loader2, BookOpen, MessageSquare, Inbox as InboxIcon, BarChart3, Pencil } from "lucide-react";
+import { Bot as BotIcon, Plus, Loader2, BookOpen, MessageSquare, Inbox as InboxIcon, BarChart3, Pencil, LifeBuoy } from "lucide-react";
+import HandoffSettings from "@/components/bot/HandoffSettings";
 import { listBots, createBot, updateBot, listModels, type Bot, type ModelOption } from "@/lib/bots";
 
 /** Always a string: FastAPI returns `detail` as a list for validation errors,
@@ -30,6 +31,9 @@ export default function BotsPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draftName, setDraftName] = useState("");
   const [savingId, setSavingId] = useState<number | null>(null);
+
+  // Which bot's handoff panel is expanded (one at a time keeps the list scannable).
+  const [handoffFor, setHandoffFor] = useState<number | null>(null);
 
   const startEdit = (b: Bot) => {
     setEditingId(b.id);
@@ -157,7 +161,8 @@ export default function BotsPage() {
       ) : (
         <div className="space-y-3">
           {bots.map((b) => (
-            <div key={b.id} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
+            <div key={b.id} className="rounded-xl border border-slate-200 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950">
                   <BotIcon size={18} />
@@ -218,6 +223,18 @@ export default function BotsPage() {
                 >
                   <InboxIcon size={14} /> Inbox
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => setHandoffFor((id) => (id === b.id ? null : b.id))}
+                  aria-expanded={handoffFor === b.id}
+                  className={`inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium ${
+                    handoffFor === b.id
+                      ? "border-indigo-500 text-indigo-600 dark:border-indigo-500"
+                      : "border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <LifeBuoy size={14} /> Handoff
+                </button>
                 <Link
                   href={`/dashboard/bots/${b.id}/analytics`}
                   className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
@@ -228,6 +245,13 @@ export default function BotsPage() {
                   {b.is_active ? "active" : "inactive"}
                 </span>
               </div>
+              </div>
+              {handoffFor === b.id && (
+                <HandoffSettings
+                  bot={b}
+                  onSaved={(u) => setBots((prev) => prev.map((x) => (x.id === u.id ? u : x)))}
+                />
+              )}
             </div>
           ))}
         </div>

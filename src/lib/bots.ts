@@ -8,7 +8,22 @@ export type Bot = {
   fallback_message: string | null;
   chat_model: string | null;
   is_active: boolean;
+  /** What a visitor is offered when the bot can't answer. */
+  handoff_mode: HandoffMode;
+  /** Digits only, international, no '+' — normalized by the API on save. */
+  whatsapp_number: string | null;
 };
+
+export type HandoffMode = "form" | "whatsapp" | "both";
+
+export const HANDOFF_MODES: { value: HandoffMode; label: string; hint: string }[] = [
+  { value: "form", label: "Contact form",
+    hint: "Visitor leaves name and email; you reply from the Inbox." },
+  { value: "whatsapp", label: "WhatsApp only",
+    hint: "Visitor is handed to your WhatsApp with the chat so far." },
+  { value: "both", label: "WhatsApp + form",
+    hint: "WhatsApp first, with the form underneath as a fallback." },
+];
 
 export type ModelOption = {
   id: string;
@@ -44,6 +59,8 @@ export async function updateBot(
     fallback_message?: string;
     chat_model?: string | null;
     is_active?: boolean;
+    handoff_mode?: HandoffMode;
+    whatsapp_number?: string | null;
   }
 ): Promise<Bot> {
   const res = await api.patch(`/bots/${botId}`, payload);
