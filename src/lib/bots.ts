@@ -6,7 +6,8 @@ export type Bot = {
   name: string;
   system_prompt: string | null;
   fallback_message: string | null;
-  chat_model: string | null;
+  /** The model actually answering this bot — set by your plan's package, read-only. */
+  effective_chat_model: string;
   is_active: boolean;
   /** What a visitor is offered when the bot can't answer. */
   handoff_mode: HandoffMode;
@@ -44,7 +45,6 @@ export async function getBot(botId: number): Promise<Bot | undefined> {
 export async function createBot(payload: {
   name: string;
   system_prompt?: string;
-  chat_model?: string;
 }): Promise<Bot> {
   const res = await api.post("/bots", payload);
   return res.data;
@@ -57,7 +57,6 @@ export async function updateBot(
     name?: string;
     system_prompt?: string;
     fallback_message?: string;
-    chat_model?: string | null;
     is_active?: boolean;
     handoff_mode?: HandoffMode;
     whatsapp_number?: string | null;
@@ -67,6 +66,8 @@ export async function updateBot(
   return res.data;
 }
 
+/** Model catalog for the admin Packages picker (not the bot form — customers
+ *  no longer choose a model, the org's package decides it). */
 export async function listModels(): Promise<ModelOption[]> {
   const res = await api.get("/bots/models");
   return res.data;

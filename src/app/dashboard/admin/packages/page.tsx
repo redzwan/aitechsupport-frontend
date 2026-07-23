@@ -11,6 +11,7 @@ import {
   type Package,
   type PackageUpsert,
 } from "@/lib/billing";
+import { listModels, type ModelOption } from "@/lib/bots";
 
 const empty: PackageUpsert = {
   slug: "",
@@ -21,10 +22,16 @@ const empty: PackageUpsert = {
   features: [],
   is_active: true,
   sort_order: 0,
+  model_provider: "openrouter",
+  chat_model: "",
+  self_hosted_base_url: "",
 };
+
+const CUSTOM_MODEL = "__custom__";
 
 export default function AdminPackagesPage() {
   const [pkgs, setPkgs] = useState<Package[]>([]);
+  const [models, setModels] = useState<ModelOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [forbidden, setForbidden] = useState(false);
   const [editing, setEditing] = useState<Package | null>(null);
@@ -33,7 +40,9 @@ export default function AdminPackagesPage() {
 
   const load = async () => {
     try {
-      setPkgs(await adminListPackages());
+      const [packages, catalog] = await Promise.all([adminListPackages(), listModels()]);
+      setPkgs(packages);
+      setModels(catalog);
     } catch (err: any) {
       if (err?.response?.status === 403) setForbidden(true);
       else toast.error("Failed to load packages");
@@ -44,6 +53,10 @@ export default function AdminPackagesPage() {
   useEffect(() => {
     load();
   }, []);
+
+  // OpenRouter picks from the catalog; local Ollama tags are always custom, since
+  // they're whatever the admin's self-hosted server happens to serve.
+  const openRouterModels = models.filter((m) => m.provider !== "Local (Ollama)");
 
   const openNew = () => {
     setEditing(null);
@@ -153,6 +166,79 @@ export default function AdminPackagesPage() {
             <label className="mb-1 block text-xs font-medium text-slate-500">Features (one per line)</label>
             <textarea rows={4} value={form.features.join("\n")} onChange={(e) => setForm({ ...form, features: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })} className={inputCls} placeholder={"3 chatbots\n300k tokens / month"} />
           </div>
+          <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+            <label className="mb-2 block text-xs font-medium text-slate-500">AI model for this package</label>
+            <div className="mb-3 flex gap-4 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  checked={form.model_provider === "self_hosted"}
+                  onChange={() => setForm({ ...form, model_provider: "self_hosted" })}
+                />
+                Self-hosted (Ollama)
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  checked={form.model_provider === "openrouter"}
+                  onChange={() => setForm({ ...form, model_provider: "openrouter" })}
+                />
+                OpenRouter
+              </label>
+            </div>
+
+            {form.model_provider === "self_hosted" ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-500">Server URL (IP:port)</label>
+                  <input
+                    required
+                    value={form.self_hosted_base_url || ""}
+                    onChange={(e) => setForm({ ...form, self_hosted_base_url: e.target.value })}
+                    className={inputCls}
+                    placeholder="http://100.101.148.46:11434"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-500">Model tag</label>
+                  <input
+                    required
+                    value={form.chat_model || ""}
+                    onChange={(e) => setForm({ ...form, chat_model: e.target.value })}
+                    className={inputCls}
+                    placeholder="qwen3:8b"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Model</label>
+                <select
+                  value={
+                    openRouterModels.some((m) => m.id === form.chat_model) ? form.chat_model || "" : CUSTOM_MODEL
+                  }
+                  onChange={(e) => setForm({ ...form, chat_model: e.target.value === CUSTOM_MODEL ? "" : e.target.value })}
+                  className={inputCls}
+                >
+                  {openRouterModels.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.label} — {m.provider}
+                    </option>
+                  ))}
+                  <option value={CUSTOM_MODEL}>Custom model id…</option>
+                </select>
+                {!openRouterModels.some((m) => m.id === form.chat_model) && (
+                  <input
+                    required
+                    value={form.chat_model || ""}
+                    onChange={(e) => setForm({ ...form, chat_model: e.target.value })}
+                    className={`${inputCls} mt-2`}
+                    placeholder="anthropic/claude-haiku-4.5"
+                  />
+                )}
+              </div>
+            )}
+          </div>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />
             Active (shown to clients)
@@ -176,6 +262,7 @@ export default function AdminPackagesPage() {
               <th className="px-4 py-3">Price</th>
               <th className="px-4 py-3">Tokens/mo</th>
               <th className="px-4 py-3">Bots</th>
+              <th className="px-4 py-3">Model</th>
               <th className="px-4 py-3">Active</th>
               <th className="px-4 py-3"></th>
             </tr>
@@ -190,6 +277,12 @@ export default function AdminPackagesPage() {
                 <td className="px-4 py-3">{p.price_myr === 0 ? "Free" : `RM${p.price_myr}`}</td>
                 <td className="px-4 py-3">{p.monthly_token_quota.toLocaleString()}</td>
                 <td className="px-4 py-3">{p.max_bots}</td>
+                <td className="px-4 py-3">
+                  <div>{p.chat_model || "—"}</div>
+                  <div className="text-xs text-slate-400">
+                    {p.model_provider === "self_hosted" ? "Self-hosted" : "OpenRouter"}
+                  </div>
+                </td>
                 <td className="px-4 py-3">{p.is_active ? "✓" : "—"}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-2">

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { toast } from "react-hot-toast";
 import { Bot as BotIcon, Plus, Loader2, BookOpen, MessageSquare, Inbox as InboxIcon, BarChart3, Pencil, LifeBuoy } from "lucide-react";
 import HandoffSettings from "@/components/bot/HandoffSettings";
-import { listBots, createBot, updateBot, listModels, type Bot, type ModelOption } from "@/lib/bots";
+import { listBots, createBot, updateBot, type Bot } from "@/lib/bots";
 
 /** Always a string: FastAPI returns `detail` as a list for validation errors,
  *  and handing that to toast/JSX would crash React. */
@@ -18,14 +18,12 @@ function errMsg(e: any, fallback: string): string {
 
 export default function BotsPage() {
   const [bots, setBots] = useState<Bot[]>([]);
-  const [models, setModels] = useState<ModelOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
   const [name, setName] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
-  const [chatModel, setChatModel] = useState("");
 
   // Inline rename
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -67,19 +65,11 @@ export default function BotsPage() {
   };
 
   useEffect(() => {
-    Promise.all([listBots(), listModels()])
-      .then(([b, m]) => {
-        setBots(b);
-        setModels(m);
-      })
+    listBots()
+      .then(setBots)
       .catch(() => toast.error("Failed to load"))
       .finally(() => setLoading(false));
   }, []);
-
-  const modelLabel = (id: string | null) => {
-    if (!id) return "Default";
-    return models.find((m) => m.id === id)?.label || id;
-  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,12 +78,10 @@ export default function BotsPage() {
       const bot = await createBot({
         name,
         system_prompt: systemPrompt || undefined,
-        chat_model: chatModel || undefined,
       });
       setBots((prev) => [...prev, bot]);
       setName("");
       setSystemPrompt("");
-      setChatModel("");
       setShowForm(false);
       toast.success("Bot created");
     } catch (err: any) {
@@ -136,17 +124,9 @@ export default function BotsPage() {
             <label className="mb-1 block text-sm font-medium">System prompt</label>
             <textarea value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)} rows={3} className={inputCls} placeholder="You are Acme's friendly support agent…" />
           </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">Model</label>
-            <select value={chatModel} onChange={(e) => setChatModel(e.target.value)} className={inputCls}>
-              <option value="">Platform default</option>
-              {models.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.label} — {m.provider}
-                </option>
-              ))}
-            </select>
-          </div>
+          <p className="text-xs text-slate-500">
+            The AI model is set by your plan — see Billing to check or upgrade it.
+          </p>
           <button type="submit" disabled={creating} className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60">
             {creating ? "Creating…" : "Create bot"}
           </button>
@@ -201,7 +181,7 @@ export default function BotsPage() {
                       <Pencil size={12} className="opacity-0 transition group-hover:opacity-60" />
                     </button>
                   )}
-                  <div className="text-xs text-slate-500">Model: {modelLabel(b.chat_model)}</div>
+                  <div className="text-xs text-slate-500">Model: {b.effective_chat_model}</div>
                 </div>
               </div>
               <div className="flex items-center gap-3">
