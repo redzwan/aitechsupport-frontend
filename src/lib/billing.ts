@@ -1,6 +1,5 @@
 import { api } from "./api";
-
-export type ModelProvider = "self_hosted" | "openrouter";
+import type { FallbackTier } from "./settings";
 
 export type Package = {
   id: number;
@@ -12,11 +11,9 @@ export type Package = {
   features: string[];
   is_active: boolean;
   sort_order: number;
-  /** Which AI model bots on this package answer with — an admin decision, not a customer one. */
-  model_provider: ModelProvider;
-  chat_model: string | null;
-  /** Only used when model_provider is "self_hosted" (e.g. an Ollama server's IP:port). */
-  self_hosted_base_url: string | null;
+  /** Ordered chat fallback chain for this plan — models tried top to bottom until
+   *  one answers. Null means it inherits the platform-wide chain from Settings. */
+  fallback_chain: FallbackTier[] | null;
 };
 
 export type Subscription = {
