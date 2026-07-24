@@ -2,8 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { KeyRound, CheckCircle2, Circle, Loader2, ShieldAlert } from "lucide-react";
-import { getSettings, updateSettings, type SettingsOut } from "@/lib/settings";
+import { KeyRound, CheckCircle2, Circle, Loader2, ShieldAlert, GitBranch, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import {
+  getSettings,
+  updateSettings,
+  getFallbackChain,
+  updateFallbackChain,
+  type SettingsOut,
+  type FallbackTier,
+} from "@/lib/settings";
 import { listModels, type ModelOption } from "@/lib/bots";
 
 /** A secret field: shows whether it's already set (+hint), with an input to replace it. */
@@ -46,6 +53,153 @@ function SecretField({
       />
       <p className="mt-1 text-xs text-slate-500">{help}</p>
     </div>
+  );
+}
+
+const emptyTier: FallbackTier = { label: "", provider: "self_hosted", base_url: "", model: "" };
+
+function FallbackChainCard() {
+  const [tiers, setTiers] = useState<FallbackTier[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    getFallbackChain()
+      .then(setTiers)
+      .catch(() => toast.error("Failed to load fallback chain"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const inputCls =
+    "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-700 dark:bg-slate-800";
+
+  const update = (i: number, patch: Partial<FallbackTier>) => {
+    setTiers((prev) => prev!.map((t, idx) => (idx === i ? { ...t, ...patch } : t)));
+  };
+  const remove = (i: number) => setTiers((prev) => prev!.filter((_, idx) => idx !== i));
+  const move = (i: number, dir: -1 | 1) => {
+    setTiers((prev) => {
+      const next = [...prev!];
+      const j = i + dir;
+      if (j < 0 || j >= next.length) return next;
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
+  };
+  const add = () => setTiers((prev) => [...(prev || []), { ...emptyTier }]);
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tiers || tiers.length === 0) {
+      toast.error("At least one tier is required");
+      return;
+    }
+    for (const t of tiers) {
+      if (!t.label.trim() || !t.model.trim()) {
+        toast.error("Every tier needs a label and a model");
+        return;
+      }
+      if (t.provider === "self_hosted" && !(t.base_url || "").trim()) {
+        toast.error(`"${t.label}" is self-hosted and needs a server URL`);
+        return;
+      }
+    }
+    setSaving(true);
+    try {
+      setTiers(await updateFallbackChain(tiers));
+      toast.success("Fallback chain saved");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading || !tiers) {
+    return (
+      <div className="flex h-32 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 dark:border-slate-800">
+        <Loader2 className="animate-spin" size={18} />
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={save} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950">
+          <GitBranch size={20} />
+        </div>
+        <div>
+          <div className="text-lg font-semibold">Chat fallback chain</div>
+          <p className="text-sm text-slate-500">
+            Which model actually answers a bot&apos;s question — tried top to bottom until one succeeds.
+            Replaces per-bot/per-package model choice.
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {tiers.map((t, i) => (
+          <div key={i} className="rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-xs font-medium text-slate-400">Tier {i + 1}</span>
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className="rounded p-1 text-slate-400 hover:text-indigo-600 disabled:opacity-30" title="Move up">
+                  <ArrowUp size={14} />
+                </button>
+                <button type="button" onClick={() => move(i, 1)} disabled={i === tiers.length - 1} className="rounded p-1 text-slate-400 hover:text-indigo-600 disabled:opacity-30" title="Move down">
+                  <ArrowDown size={14} />
+                </button>
+                <button type="button" onClick={() => remove(i)} className="rounded p-1 text-slate-400 hover:text-rose-600" title="Remove tier">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Label</label>
+                <input value={t.label} onChange={(e) => update(i, { label: e.target.value })} className={inputCls} placeholder="black" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Provider</label>
+                <select
+                  value={t.provider}
+                  onChange={(e) => update(i, { provider: e.target.value as FallbackTier["provider"] })}
+                  className={inputCls}
+                >
+                  <option value="self_hosted">Self-hosted (Ollama)</option>
+                  <option value="openrouter">OpenRouter</option>
+                </select>
+              </div>
+              {t.provider === "self_hosted" && (
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-500">Server URL (IP:port)</label>
+                  <input value={t.base_url || ""} onChange={(e) => update(i, { base_url: e.target.value })} className={`${inputCls} font-mono`} placeholder="http://100.102.172.23:11434" />
+                </div>
+              )}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Model</label>
+                <input value={t.model} onChange={(e) => update(i, { model: e.target.value })} className={`${inputCls} font-mono`} placeholder="qwen3.5:9b-q4_K_M" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button type="button" onClick={add} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+        <Plus size={14} /> Add tier
+      </button>
+
+      <div>
+        <button
+          type="submit"
+          disabled={saving}
+          className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:opacity-60"
+        >
+          {saving ? "Saving…" : "Save fallback chain"}
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -172,7 +326,10 @@ export default function SettingsPage() {
               <option value={defaultModel}>{defaultModel} (custom)</option>
             )}
           </select>
-          <p className="mt-1 text-xs text-slate-500">Used when a bot doesn&apos;t specify its own model.</p>
+          <p className="mt-1 text-xs text-slate-500">
+            Rarely used now — only as a last-resort fallback if the chain below is empty or misconfigured.
+            The fallback chain below controls which model actually answers.
+          </p>
         </div>
 
         <div>
@@ -189,6 +346,10 @@ export default function SettingsPage() {
           {saving ? "Saving…" : "Save settings"}
         </button>
       </form>
+
+      <div className="mt-6">
+        <FallbackChainCard />
+      </div>
     </div>
   );
 }

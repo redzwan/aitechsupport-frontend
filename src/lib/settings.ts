@@ -25,3 +25,23 @@ export async function updateSettings(payload: SettingsUpdate): Promise<SettingsO
   const res = await api.put("/admin/settings", payload);
   return res.data;
 }
+
+/** One rung of the platform-wide chat fallback chain — which model actually
+ *  answers a bot's question, tried top to bottom until one succeeds. Replaces
+ *  per-bot/per-package model choice. */
+export type FallbackTier = {
+  label: string;
+  provider: "self_hosted" | "openrouter";
+  base_url: string | null;
+  model: string;
+};
+
+export async function getFallbackChain(): Promise<FallbackTier[]> {
+  const res = await api.get("/admin/fallback-chain");
+  return res.data.tiers;
+}
+
+export async function updateFallbackChain(tiers: FallbackTier[]): Promise<FallbackTier[]> {
+  const res = await api.put("/admin/fallback-chain", { tiers });
+  return res.data.tiers;
+}
