@@ -44,15 +44,6 @@ export default function WhatsAppPage() {
     }
   };
 
-  useEffect(() => {
-    getBot(botId).then(setBot).catch(() => {});
-    getWhatsApp(botId)
-      .then(setStatus)
-      .catch(() => toast.error("Failed to load WhatsApp status"))
-      .finally(() => setLoading(false));
-    return stopPolling;
-  }, [botId]);
-
   const startPolling = () => {
     stopPolling();
     pollRef.current = setInterval(async () => {
@@ -88,6 +79,25 @@ export default function WhatsAppPage() {
       setConnecting(false);
     }
   };
+
+  useEffect(() => {
+    getBot(botId).then(setBot).catch(() => {});
+    getWhatsApp(botId)
+      .then(async (s) => {
+        setStatus(s);
+        // A channel can already be mid-connect from a previous visit (page
+        // refresh, tab closed, etc) — we never actually have the QR image
+        // itself (only status is persisted), so fetch a fresh one rather
+        // than showing a spinner with nothing behind it.
+        if (s.connection_status === "pending_qr") {
+          await connect();
+        }
+      })
+      .catch(() => toast.error("Failed to load WhatsApp status"))
+      .finally(() => setLoading(false));
+    return stopPolling;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [botId]);
 
   const disconnect = async () => {
     if (!confirm("Disconnect this WhatsApp number? The bot will stop answering on WhatsApp until reconnected.")) return;
