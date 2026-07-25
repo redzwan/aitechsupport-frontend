@@ -5,6 +5,8 @@ export type WhatsAppConnectionStatus = "disconnected" | "pending_qr" | "connecte
 export type WhatsAppStatus = {
   connection_status: WhatsAppConnectionStatus;
   is_active: boolean;
+  /** Whether the org's current package allows connecting WhatsApp at all. */
+  plan_allows_whatsapp: boolean;
 };
 
 export type WhatsAppConnect = {

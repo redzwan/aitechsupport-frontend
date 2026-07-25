@@ -11,6 +11,8 @@ export type Package = {
   features: string[];
   is_active: boolean;
   sort_order: number;
+  /** Whether a bot on this plan can connect WhatsApp (Fonnte) at all. */
+  whatsapp_enabled: boolean;
   /** Ordered chat fallback chain for this plan — models tried top to bottom until
    *  one answers. Null means it inherits the platform-wide chain from Settings. */
   fallback_chain: FallbackTier[] | null;

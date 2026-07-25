@@ -22,6 +22,7 @@ const empty: PackageUpsert = {
   features: [],
   is_active: true,
   sort_order: 0,
+  whatsapp_enabled: true,
   fallback_chain: null,
 };
 
@@ -180,6 +181,14 @@ export default function AdminPackagesPage() {
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />
             Active (shown to clients)
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={form.whatsapp_enabled}
+              onChange={(e) => setForm({ ...form, whatsapp_enabled: e.target.checked })}
+            />
+            WhatsApp connection allowed on this plan
           </label>
           <div className="flex gap-2">
             <button type="submit" disabled={saving} className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60">

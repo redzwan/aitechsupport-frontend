@@ -14,6 +14,7 @@ import {
   Loader2,
   CheckCircle2,
   QrCode,
+  Lock,
 } from "lucide-react";
 import {
   getWhatsApp,
@@ -157,7 +158,25 @@ export default function WhatsAppPage() {
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-        {connected ? (
+        {status && !status.plan_allows_whatsapp ? (
+          <div className="flex flex-col items-center gap-3 py-8 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-600 dark:bg-amber-950">
+              <Lock size={22} />
+            </div>
+            <div>
+              <div className="font-medium">Not available on your current plan</div>
+              <p className="mt-1 max-w-sm text-sm text-slate-500">
+                WhatsApp isn&apos;t included on the Free plan. Upgrade to connect a dedicated number for this bot.
+              </p>
+            </div>
+            <Link
+              href="/dashboard/billing"
+              className="mt-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700"
+            >
+              View plans
+            </Link>
+          </div>
+        ) : connected ? (
           <div className="flex flex-col items-center gap-3 py-6 text-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950">
               <CheckCircle2 size={24} />
