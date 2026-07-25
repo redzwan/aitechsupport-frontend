@@ -138,6 +138,8 @@ export default function SettingsPage() {
   const [voyageKey, setVoyageKey] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
   const [defaultModel, setDefaultModel] = useState("");
+  const [fonnteToken, setFonnteToken] = useState("");
+  const [encryptionKey, setEncryptionKey] = useState("");
 
   const load = async () => {
     try {
@@ -167,10 +169,14 @@ export default function SettingsPage() {
         voyage_api_key: voyageKey || undefined,
         openrouter_base_url: baseUrl || undefined,
         default_chat_model: defaultModel || undefined,
+        fonnte_account_token: fonnteToken || undefined,
+        field_encryption_key: encryptionKey || undefined,
       });
       setSettings(updated);
       setOpenrouterKey("");
       setVoyageKey("");
+      setFonnteToken("");
+      setEncryptionKey("");
       toast.success("Settings saved");
     } catch {
       toast.error("Failed to save");
@@ -234,6 +240,26 @@ export default function SettingsPage() {
           hint={settings!.voyage_api_key_hint}
           value={voyageKey}
           onChange={setVoyageKey}
+        />
+        <SecretField
+          label="Fonnte account token"
+          help="Platform WhatsApp gateway account — provisions a device per bot when a client connects WhatsApp. Get it at fonnte.com"
+          isSet={settings!.fonnte_account_token_set}
+          hint={settings!.fonnte_account_token_hint}
+          value={fonnteToken}
+          onChange={setFonnteToken}
+        />
+        <SecretField
+          label="Field encryption key"
+          help={
+            settings!.field_encryption_key_set
+              ? "Encrypts WhatsApp device tokens at rest. Changing this makes already-connected numbers undecryptable — only replace it if you know what you're doing."
+              : "Required before connecting any WhatsApp number. Generate one: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+          }
+          isSet={settings!.field_encryption_key_set}
+          hint={null}
+          value={encryptionKey}
+          onChange={setEncryptionKey}
         />
 
         <div>

@@ -7,6 +7,9 @@ export type SettingsOut = {
   voyage_api_key_hint: string | null;
   openrouter_base_url: string;
   default_chat_model: string;
+  fonnte_account_token_set: boolean;
+  fonnte_account_token_hint: string | null;
+  field_encryption_key_set: boolean;
 };
 
 export type SettingsUpdate = {
@@ -14,6 +17,8 @@ export type SettingsUpdate = {
   voyage_api_key?: string;
   openrouter_base_url?: string;
   default_chat_model?: string;
+  fonnte_account_token?: string;
+  field_encryption_key?: string;
 };
 
 export async function getSettings(): Promise<SettingsOut> {

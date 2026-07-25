@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "react-hot-toast";
-import { ArrowLeft, BookOpen, MessageSquare, Inbox as InboxIcon, BarChart3, Loader2, Mail, User as UserIcon, CheckCircle2, Hand, LogOut, Send, ImagePlus, X } from "lucide-react";
+import { ArrowLeft, BookOpen, MessageSquare, Phone, Inbox as InboxIcon, BarChart3, Loader2, Mail, User as UserIcon, CheckCircle2, Hand, LogOut, Send, ImagePlus, X } from "lucide-react";
 import {
   listConversations,
   getConversationMessages,
@@ -243,6 +243,7 @@ export default function InboxPage() {
       <div className="mb-5 flex gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
         <Link href={`/dashboard/bots/${botId}/knowledge`} className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-slate-500"><BookOpen size={15} /> Knowledge</Link>
         <Link href={`/dashboard/bots/${botId}/widget`} className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-slate-500"><MessageSquare size={15} /> Website widget</Link>
+        <Link href={`/dashboard/bots/${botId}/whatsapp`} className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-slate-500"><Phone size={15} /> WhatsApp</Link>
         <span className="flex flex-1 items-center justify-center gap-2 rounded-md bg-white px-3 py-1.5 text-sm font-medium text-indigo-600 shadow-sm dark:bg-slate-900"><InboxIcon size={15} /> Inbox</span>
         <Link href={`/dashboard/bots/${botId}/analytics`} className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-slate-500"><BarChart3 size={15} /> Analytics</Link>
       </div>

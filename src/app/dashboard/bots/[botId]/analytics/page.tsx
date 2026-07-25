@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "react-hot-toast";
-import { ArrowLeft, BookOpen, MessageSquare, Inbox as InboxIcon, BarChart3, Loader2, HelpCircle } from "lucide-react";
+import { ArrowLeft, BookOpen, MessageSquare, Phone, Inbox as InboxIcon, BarChart3, Loader2, HelpCircle } from "lucide-react";
 import { getWidgetAnalytics, type WidgetAnalytics, type AnalyticsPoint } from "@/lib/analytics";
 import { getBot, type Bot } from "@/lib/bots";
 
@@ -70,6 +70,9 @@ export default function AnalyticsPage() {
         </Link>
         <Link href={`/dashboard/bots/${botId}/widget`} className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-slate-500">
           <MessageSquare size={15} /> Website widget
+        </Link>
+        <Link href={`/dashboard/bots/${botId}/whatsapp`} className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-slate-500">
+          <Phone size={15} /> WhatsApp
         </Link>
         <Link href={`/dashboard/bots/${botId}/inbox`} className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-slate-500">
           <InboxIcon size={15} /> Inbox

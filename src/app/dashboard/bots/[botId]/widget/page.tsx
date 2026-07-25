@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   BookOpen,
   MessageSquare,
+  Phone,
   Inbox as InboxIcon,
   BarChart3,
   Loader2,
@@ -153,6 +154,9 @@ export default function WidgetPage() {
         <span className="flex flex-1 items-center justify-center gap-2 rounded-md bg-white px-3 py-1.5 text-sm font-medium text-indigo-600 shadow-sm dark:bg-slate-900">
           <MessageSquare size={15} /> Website widget
         </span>
+        <Link href={`/dashboard/bots/${botId}/whatsapp`} className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-slate-500">
+          <Phone size={15} /> WhatsApp
+        </Link>
         <Link href={`/dashboard/bots/${botId}/inbox`} className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-slate-500">
           <InboxIcon size={15} /> Inbox
         </Link>
