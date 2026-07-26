@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { CreditCard, Check, Loader2, Zap } from "lucide-react";
+import { CreditCard, Check, Loader2, Zap, Banknote, X } from "lucide-react";
 import {
   listPackages,
   getSubscription,
   checkout,
+  getBankTransfer,
+  reportBankTransfer,
   type Package,
   type Subscription,
+  type BankTransferSettings,
 } from "@/lib/billing";
 
 function fmt(n: number): string {
@@ -22,11 +25,21 @@ export default function BillingPage() {
   const [sub, setSub] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [bankTransfer, setBankTransfer] = useState<BankTransferSettings | null>(null);
+  const [reportingSlug, setReportingSlug] = useState<string | null>(null);
+  const [note, setNote] = useState("");
+  const [submittingReport, setSubmittingReport] = useState(false);
 
   const load = async () => {
     const [p, s] = await Promise.all([listPackages(), getSubscription()]);
     setPkgs(p);
     setSub(s);
+    try {
+      const bt = await getBankTransfer();
+      if (bt.configured) setBankTransfer(bt);
+    } catch {
+      /* bank transfer is optional — ignore if unavailable */
+    }
   };
 
   useEffect(() => {
@@ -35,6 +48,21 @@ export default function BillingPage() {
       .finally(() => setLoading(false));
     handleBillplzReturn();
   }, []);
+
+  const submitBankTransfer = async () => {
+    if (!reportingSlug) return;
+    setSubmittingReport(true);
+    try {
+      await reportBankTransfer(reportingSlug, note);
+      toast.success("Thanks — we'll confirm your transfer and activate your plan shortly.");
+      setReportingSlug(null);
+      setNote("");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || "Could not report the transfer");
+    } finally {
+      setSubmittingReport(false);
+    }
+  };
 
   // Billplz redirects back with ?billplz[paid]=true&billplz[id]=… after payment.
   // The webhook activates the plan server-side; here we confirm and refresh (the
@@ -113,7 +141,12 @@ export default function BillingPage() {
             </div>
             <div>
               <div className="text-lg font-semibold">{sub.plan_name} plan</div>
-              <div className="text-xs text-slate-500">Up to {sub.max_bots} bot(s) · status: {sub.status}</div>
+              <div className="text-xs text-slate-500">
+                Up to {sub.max_bots} bot(s) · status: {sub.status}
+                {sub.next_billing_date && (
+                  <> · renews {new Date(sub.next_billing_date).toLocaleDateString("en-MY", { day: "numeric", month: "short", year: "numeric" })}</>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -181,14 +214,82 @@ export default function BillingPage() {
               >
                 {current ? "Current plan" : busy === p.slug ? "…" : p.price_myr === 0 ? "Switch to Free" : "Choose plan"}
               </button>
+              {!current && p.price_myr > 0 && bankTransfer && (
+                <button
+                  onClick={() => setReportingSlug(p.slug)}
+                  className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                >
+                  <Banknote size={13} /> Pay by bank transfer
+                </button>
+              )}
             </div>
           );
         })}
       </div>
       <p className="mt-4 text-xs text-slate-500">
-        Paid plans are billed securely through Billplz (FPX / card). Your plan activates automatically once
-        payment is confirmed. Switching to Free takes effect immediately.
+        Paid plans are billed securely through Billplz (FPX / card){bankTransfer ? ", or by manual bank transfer" : ""}.
+        Your plan activates once payment is confirmed. Switching to Free takes effect immediately.
       </p>
+
+      {/* Bank transfer instructions + report modal */}
+      {reportingSlug && bankTransfer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 dark:bg-slate-900">
+            <div className="mb-4 flex items-start justify-between">
+              <div className="flex items-center gap-2 text-lg font-semibold">
+                <Banknote size={18} className="text-emerald-600" /> Pay by bank transfer
+              </div>
+              <button onClick={() => setReportingSlug(null)} className="text-slate-400 hover:text-slate-600">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-1 rounded-lg bg-slate-50 p-4 text-sm dark:bg-slate-800">
+              <div><span className="text-slate-500">Bank:</span> {bankTransfer.bank_name}</div>
+              <div><span className="text-slate-500">Account name:</span> {bankTransfer.account_name}</div>
+              <div><span className="text-slate-500">Account number:</span> {bankTransfer.account_number}</div>
+            </div>
+
+            {bankTransfer.qr_url && (
+              <div className="mt-4 flex justify-center">
+                <img src={bankTransfer.qr_url} alt="Bank transfer QR code" className="h-40 w-40 rounded-lg border border-slate-200 object-contain dark:border-slate-700" />
+              </div>
+            )}
+
+            <p className="mt-4 text-xs text-slate-500">
+              Transfer the plan amount, then add any reference so we can match it (optional), and submit —
+              we&rsquo;ll confirm and activate your plan.
+              {bankTransfer.notify_whatsapp_number && (
+                <> You can also message us directly on WhatsApp at {bankTransfer.notify_whatsapp_number}.</>
+              )}
+            </p>
+
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="e.g. Transferred RM99 on 26 Jul, own bank ref ABC123"
+              rows={3}
+              className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-700 dark:bg-slate-800"
+            />
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                onClick={() => setReportingSlug(null)}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitBankTransfer}
+                disabled={submittingReport}
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+              >
+                {submittingReport ? "Submitting…" : "I've made the transfer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

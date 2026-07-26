@@ -27,6 +27,7 @@ export type Subscription = {
   tokens_remaining: number;
   max_bots: number;
   period_start: string | null;
+  next_billing_date: string | null;
 };
 
 export type ClientRow = {
@@ -38,6 +39,8 @@ export type ClientRow = {
   tokens_quota: number;
   bots: number;
   created_at: string | null;
+  start_date: string | null;
+  next_billing_date: string | null;
 };
 
 export type PackageUpsert = Omit<Package, "id">;
@@ -81,6 +84,15 @@ export async function adminListClients(): Promise<ClientRow[]> {
 export async function adminSetClientPlan(orgId: number, packageSlug: string): Promise<ClientRow> {
   return (await api.put(`/admin/clients/${orgId}/plan`, { package_slug: packageSlug })).data;
 }
+export async function adminSetClientBillingDate(orgId: number, startDate: string): Promise<ClientRow> {
+  return (await api.put(`/admin/clients/${orgId}/billing-date`, { start_date: startDate })).data;
+}
+export async function adminSendReminder(orgId: number): Promise<void> {
+  await api.post(`/admin/clients/${orgId}/send-reminder`);
+}
+export async function adminSendAllReminders(): Promise<{ reminders_sent: number }> {
+  return (await api.post("/admin/billing/send-renewal-reminders")).data;
+}
 
 // ----- Billplz gateway settings (platform admin) -----
 export type BillplzSettings = {
@@ -108,9 +120,12 @@ export type PaymentRow = {
   organization_name: string | null;
   plan_slug: string;
   amount_cents: number;
+  method: string; // billplz | bank_transfer
   status: string; // pending | paid | failed
   sandbox: boolean;
   billplz_bill_id: string | null;
+  reference_note: string | null;
+  reported_at: string | null;
   paid_at: string | null;
   created_at: string | null;
 };
@@ -137,4 +152,60 @@ export async function updateBillplz(p: BillplzUpdate): Promise<BillplzSettings> 
 }
 export async function testBillplz(): Promise<void> {
   await api.post("/admin/billplz/test");
+}
+
+export async function adminConfirmPayment(paymentId: number): Promise<PaymentRow> {
+  return (await api.post(`/admin/payments/${paymentId}/confirm`)).data;
+}
+
+// ----- Bank transfer fallback payment -----
+export type BankTransferSettings = {
+  enabled: boolean;
+  bank_name: string;
+  account_name: string;
+  account_number: string;
+  qr_url: string | null;
+  notify_channel_id: number | null;
+  notify_whatsapp_number: string;
+  configured: boolean;
+};
+
+export type BankTransferUpdate = {
+  enabled?: boolean;
+  bank_name?: string;
+  account_name?: string;
+  account_number?: string;
+  notify_channel_id?: number;
+  notify_whatsapp_number?: string;
+};
+
+export type WhatsappChannelOption = {
+  id: number;
+  bot_name: string;
+  organization_name: string;
+  phone_number_id: string | null;
+};
+
+// client-facing
+export async function getBankTransfer(): Promise<BankTransferSettings> {
+  return (await api.get("/billing/bank-transfer")).data;
+}
+export async function reportBankTransfer(packageSlug: string, note: string): Promise<{ payment_id: number; status: string }> {
+  return (await api.post("/billing/bank-transfer/report", { package_slug: packageSlug, note })).data;
+}
+
+// platform admin
+export async function adminGetBankTransfer(): Promise<BankTransferSettings> {
+  return (await api.get("/admin/bank-transfer")).data;
+}
+export async function adminUpdateBankTransfer(p: BankTransferUpdate): Promise<BankTransferSettings> {
+  return (await api.put("/admin/bank-transfer", p)).data;
+}
+export async function adminUploadBankTransferQr(file: File): Promise<BankTransferSettings> {
+  const form = new FormData();
+  form.append("file", file);
+  return (await api.post("/admin/bank-transfer/qr", form, { headers: { "Content-Type": "multipart/form-data" } })).data;
+}
+export async function adminListWhatsappChannels(): Promise<WhatsappChannelOption[]> {
+  return (await api.get("/admin/whatsapp-channels")).data;
 }

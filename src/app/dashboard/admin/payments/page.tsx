@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { Receipt, Loader2, ShieldAlert } from "lucide-react";
+import { Receipt, Loader2, ShieldAlert, CheckCircle2 } from "lucide-react";
 import {
   adminListPayments,
+  adminConfirmPayment,
   type PaymentRow,
   type PaymentsSummary,
 } from "@/lib/billing";
@@ -36,6 +37,20 @@ export default function AdminPaymentsPage() {
   const [loading, setLoading] = useState(true);
   const [forbidden, setForbidden] = useState(false);
   const [status, setStatus] = useState<string>("");
+  const [confirmingId, setConfirmingId] = useState<number | null>(null);
+
+  const confirm = async (id: number) => {
+    setConfirmingId(id);
+    try {
+      const updated = await adminConfirmPayment(id);
+      setRows((prev) => prev.map((r) => (r.id === id ? updated : r)));
+      toast.success("Payment confirmed — plan activated");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || "Failed to confirm payment");
+    } finally {
+      setConfirmingId(null);
+    }
+  };
 
   const load = async (s: string) => {
     setLoading(true);
@@ -122,12 +137,14 @@ export default function AdminPaymentsPage() {
               <tr>
                 <th className="px-4 py-3">Organization</th>
                 <th className="px-4 py-3">Plan</th>
+                <th className="px-4 py-3">Method</th>
                 <th className="px-4 py-3">Amount</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Env</th>
                 <th className="px-4 py-3">Created</th>
                 <th className="px-4 py-3">Paid</th>
-                <th className="px-4 py-3">Bill</th>
+                <th className="px-4 py-3">Reference</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -135,6 +152,13 @@ export default function AdminPaymentsPage() {
                 <tr key={r.id} className="bg-white dark:bg-slate-900">
                   <td className="px-4 py-3 font-medium">{r.organization_name || `#${r.organization_id}`}</td>
                   <td className="px-4 py-3 text-slate-500">{r.plan_slug}</td>
+                  <td className="px-4 py-3">
+                    {r.method === "bank_transfer" ? (
+                      <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">bank transfer</span>
+                    ) : (
+                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 dark:bg-slate-800">billplz</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 font-medium">{rm(r.amount_cents)}</td>
                   <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
                   <td className="px-4 py-3">
@@ -146,7 +170,20 @@ export default function AdminPaymentsPage() {
                   </td>
                   <td className="px-4 py-3 text-slate-500">{when(r.created_at)}</td>
                   <td className="px-4 py-3 text-slate-500">{when(r.paid_at)}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-400">{r.billplz_bill_id || "—"}</td>
+                  <td className="px-4 py-3 max-w-[220px] truncate font-mono text-xs text-slate-400" title={r.method === "bank_transfer" ? r.reference_note || "" : r.billplz_bill_id || ""}>
+                    {r.method === "bank_transfer" ? r.reference_note || "—" : r.billplz_bill_id || "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    {r.method === "bank_transfer" && r.status === "pending" && (
+                      <button
+                        onClick={() => confirm(r.id)}
+                        disabled={confirmingId === r.id}
+                        className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+                      >
+                        <CheckCircle2 size={13} /> {confirmingId === r.id ? "…" : "Confirm"}
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -1,9 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
-import { CreditCard, PlugZap, Loader2, ShieldAlert, CheckCircle2, Circle, FlaskConical } from "lucide-react";
-import { getBillplz, updateBillplz, testBillplz, type BillplzSettings } from "@/lib/billing";
+import { CreditCard, PlugZap, Loader2, ShieldAlert, CheckCircle2, Circle, FlaskConical, Banknote, Upload, MessageCircle } from "lucide-react";
+import {
+  getBillplz,
+  updateBillplz,
+  testBillplz,
+  type BillplzSettings,
+  adminGetBankTransfer,
+  adminUpdateBankTransfer,
+  adminUploadBankTransferQr,
+  adminListWhatsappChannels,
+  type BankTransferSettings,
+  type WhatsappChannelOption,
+} from "@/lib/billing";
 
 export default function BillplzPage() {
   const [s, setS] = useState<BillplzSettings | null>(null);
@@ -68,6 +79,77 @@ export default function BillplzPage() {
       toast.error(err?.response?.data?.detail || "Connection test failed");
     } finally {
       setTesting(false);
+    }
+  };
+
+  // ----- Bank transfer fallback -----
+  const [bt, setBt] = useState<BankTransferSettings | null>(null);
+  const [btLoading, setBtLoading] = useState(true);
+  const [btSaving, setBtSaving] = useState(false);
+  const [btUploading, setBtUploading] = useState(false);
+  const [channels, setChannels] = useState<WhatsappChannelOption[]>([]);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const [btEnabled, setBtEnabled] = useState(false);
+  const [bankName, setBankName] = useState("");
+  const [accountName, setAccountName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [notifyChannelId, setNotifyChannelId] = useState<number | "">("");
+  const [notifyNumber, setNotifyNumber] = useState("");
+
+  const loadBankTransfer = async () => {
+    try {
+      const [cfg, chans] = await Promise.all([adminGetBankTransfer(), adminListWhatsappChannels()]);
+      setBt(cfg);
+      setChannels(chans);
+      setBtEnabled(cfg.enabled);
+      setBankName(cfg.bank_name);
+      setAccountName(cfg.account_name);
+      setAccountNumber(cfg.account_number);
+      setNotifyChannelId(cfg.notify_channel_id ?? "");
+      setNotifyNumber(cfg.notify_whatsapp_number);
+    } catch {
+      // 403 already surfaced by the Billplz load above
+    } finally {
+      setBtLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadBankTransfer();
+  }, []);
+
+  const saveBankTransfer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBtSaving(true);
+    try {
+      const cfg = await adminUpdateBankTransfer({
+        enabled: btEnabled,
+        bank_name: bankName,
+        account_name: accountName,
+        account_number: accountNumber,
+        notify_channel_id: notifyChannelId === "" ? undefined : Number(notifyChannelId),
+        notify_whatsapp_number: notifyNumber,
+      });
+      setBt(cfg);
+      toast.success("Bank transfer settings saved");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || "Failed to save");
+    } finally {
+      setBtSaving(false);
+    }
+  };
+
+  const uploadQr = async (file: File) => {
+    setBtUploading(true);
+    try {
+      const cfg = await adminUploadBankTransferQr(file);
+      setBt(cfg);
+      toast.success("QR code uploaded");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || "Failed to upload QR code");
+    } finally {
+      setBtUploading(false);
     }
   };
 
@@ -171,6 +253,110 @@ export default function BillplzPage() {
           <li>Keep <strong>Sandbox mode</strong> on until you&rsquo;ve tested checkout, then switch it off and re-enter your production keys.</li>
         </ol>
       </div>
+
+      {/* ===== Bank transfer fallback ===== */}
+      <div className="mb-6 mt-10 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950">
+          <Banknote size={20} />
+        </div>
+        <div>
+          <h1 className="text-2xl font-semibold">Bank transfer fallback</h1>
+          <p className="text-sm text-slate-500">
+            Let customers pay by scanning your bank&rsquo;s QR code or transferring manually, then reporting it
+            on their Billing page. You confirm the transfer and activate the plan yourself.
+          </p>
+        </div>
+      </div>
+
+      {btLoading ? (
+        <div className="flex h-32 items-center justify-center text-slate-500">
+          <Loader2 className="animate-spin" />
+        </div>
+      ) : (
+        <form onSubmit={saveBankTransfer} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input type="checkbox" checked={btEnabled} onChange={(e) => setBtEnabled(e.target.checked)} className="h-4 w-4" />
+            Bank transfer enabled (show as a payment option alongside Billplz)
+          </label>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div>
+              <label className="mb-1 block text-sm font-medium">Bank name</label>
+              <input value={bankName} onChange={(e) => setBankName(e.target.value)} className={inputCls} placeholder="e.g. Maybank" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">Account name</label>
+              <input value={accountName} onChange={(e) => setAccountName(e.target.value)} className={inputCls} placeholder="Your name as on the account" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">Account number</label>
+              <input value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} className={inputCls} placeholder="e.g. 1234567890" />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium">QR code (customers scan this in their banking app)</label>
+            <div className="flex items-center gap-3">
+              {bt?.qr_url ? (
+                <img src={bt.qr_url} alt="Bank transfer QR" className="h-24 w-24 rounded-lg border border-slate-200 object-contain dark:border-slate-700" />
+              ) : (
+                <div className="flex h-24 w-24 items-center justify-center rounded-lg border border-dashed border-slate-300 text-xs text-slate-400 dark:border-slate-700">
+                  No QR yet
+                </div>
+              )}
+              <div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  className="hidden"
+                  onChange={(e) => e.target.files?.[0] && uploadQr(e.target.files[0])}
+                />
+                <button
+                  type="button"
+                  disabled={btUploading}
+                  onClick={() => fileRef.current?.click()}
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800"
+                >
+                  <Upload size={14} /> {btUploading ? "Uploading…" : bt?.qr_url ? "Replace QR" : "Upload QR"}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 flex items-center gap-2 text-sm font-medium">
+                <MessageCircle size={14} /> Notify via WhatsApp channel
+              </label>
+              <select
+                value={notifyChannelId}
+                onChange={(e) => setNotifyChannelId(e.target.value === "" ? "" : Number(e.target.value))}
+                className={inputCls}
+              >
+                <option value="">Don&rsquo;t send WhatsApp notifications</option>
+                {channels.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.organization_name} · {c.bot_name} ({c.phone_number_id || "no number"})
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-slate-400">
+                Reuses one client bot&rsquo;s connected WhatsApp device to send you a message when a customer
+                reports a transfer.
+              </p>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">Your WhatsApp number</label>
+              <input value={notifyNumber} onChange={(e) => setNotifyNumber(e.target.value)} className={inputCls} placeholder="e.g. 60123456789" />
+            </div>
+          </div>
+
+          <button type="submit" disabled={btSaving} className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60">
+            {btSaving ? "Saving…" : "Save bank transfer settings"}
+          </button>
+        </form>
+      )}
     </div>
   );
 }

@@ -2,14 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { Users, Loader2, ShieldAlert } from "lucide-react";
+import { Users, Loader2, ShieldAlert, BellRing } from "lucide-react";
 import {
   adminListClients,
   adminListPackages,
   adminSetClientPlan,
+  adminSetClientBillingDate,
+  adminSendReminder,
   type ClientRow,
   type Package,
 } from "@/lib/billing";
+
+function toDateInput(iso: string | null): string {
+  return iso ? iso.slice(0, 10) : "";
+}
 
 function fmt(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -23,6 +29,7 @@ export default function AdminClientsPage() {
   const [loading, setLoading] = useState(true);
   const [forbidden, setForbidden] = useState(false);
   const [savingOrg, setSavingOrg] = useState<number | null>(null);
+  const [remindingOrg, setRemindingOrg] = useState<number | null>(null);
 
   const load = async () => {
     try {
@@ -50,6 +57,32 @@ export default function AdminClientsPage() {
       toast.error(err?.response?.data?.detail || "Failed to set plan");
     } finally {
       setSavingOrg(null);
+    }
+  };
+
+  const setBillingDate = async (orgId: number, dateStr: string) => {
+    if (!dateStr) return;
+    setSavingOrg(orgId);
+    try {
+      const updated = await adminSetClientBillingDate(orgId, dateStr);
+      setClients((prev) => prev.map((c) => (c.organization_id === orgId ? updated : c)));
+      toast.success("Renewal date updated");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || "Failed to set renewal date");
+    } finally {
+      setSavingOrg(null);
+    }
+  };
+
+  const remind = async (orgId: number) => {
+    setRemindingOrg(orgId);
+    try {
+      await adminSendReminder(orgId);
+      toast.success("Reminder sent");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || "Failed to send reminder");
+    } finally {
+      setRemindingOrg(null);
     }
   };
 
@@ -90,6 +123,8 @@ export default function AdminClientsPage() {
               <th className="px-4 py-3">Bots</th>
               <th className="px-4 py-3">Usage</th>
               <th className="px-4 py-3">Plan</th>
+              <th className="px-4 py-3">Renews</th>
+              <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -115,6 +150,32 @@ export default function AdminClientsPage() {
                     ))}
                     {!pkgs.some((p) => p.slug === c.plan) && <option value={c.plan}>{c.plan}</option>}
                   </select>
+                </td>
+                <td className="px-4 py-3">
+                  <input
+                    type="date"
+                    defaultValue={toDateInput(c.start_date)}
+                    disabled={savingOrg === c.organization_id}
+                    onBlur={(e) => e.target.value && setBillingDate(c.organization_id, e.target.value)}
+                    className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800"
+                    title="Start date — next renewal is 30 days after this"
+                  />
+                  {c.next_billing_date && (
+                    <div className="mt-1 text-[11px] text-slate-400">
+                      next: {new Date(c.next_billing_date).toLocaleDateString("en-MY")}
+                    </div>
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  {c.next_billing_date && (
+                    <button
+                      onClick={() => remind(c.organization_id)}
+                      disabled={remindingOrg === c.organization_id}
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800"
+                    >
+                      <BellRing size={13} /> {remindingOrg === c.organization_id ? "…" : "Remind"}
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
