@@ -7,6 +7,7 @@ import { Bot as BotIcon, Plus, Loader2, BookOpen, MessageSquare, Inbox as InboxI
 import HandoffSettings from "@/components/bot/HandoffSettings";
 import { listBots, createBot, updateBot, type Bot } from "@/lib/bots";
 import { listKnowledge } from "@/lib/knowledge";
+import { useAuth } from "@/hooks/useAuth";
 
 /** Always a string: FastAPI returns `detail` as a list for validation errors,
  *  and handing that to toast/JSX would crash React. */
@@ -18,6 +19,7 @@ function errMsg(e: any, fallback: string): string {
 }
 
 export default function BotsPage() {
+  const { user } = useAuth();
   const [bots, setBots] = useState<Bot[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -195,7 +197,9 @@ export default function BotsPage() {
                       <Pencil size={12} className="opacity-0 transition group-hover:opacity-60" />
                     </button>
                   )}
-                  <div className="text-xs text-slate-500">Model: {b.effective_chat_model}</div>
+                  {user?.is_platform_admin && (
+                    <div className="text-xs text-slate-500">Model: {b.effective_chat_model}</div>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-3">
