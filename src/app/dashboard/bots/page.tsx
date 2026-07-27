@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
-import { Bot as BotIcon, Plus, Loader2, BookOpen, MessageSquare, Inbox as InboxIcon, BarChart3, Pencil, LifeBuoy } from "lucide-react";
+import { Bot as BotIcon, Plus, Loader2, BookOpen, MessageSquare, Inbox as InboxIcon, BarChart3, Pencil, LifeBuoy, AlertTriangle } from "lucide-react";
 import HandoffSettings from "@/components/bot/HandoffSettings";
 import { listBots, createBot, updateBot, type Bot } from "@/lib/bots";
+import { listKnowledge } from "@/lib/knowledge";
 
 /** Always a string: FastAPI returns `detail` as a list for validation errors,
  *  and handing that to toast/JSX would crash React. */
@@ -32,6 +33,9 @@ export default function BotsPage() {
 
   // Which bot's handoff panel is expanded (one at a time keeps the list scannable).
   const [handoffFor, setHandoffFor] = useState<number | null>(null);
+
+  // Bot id -> whether it has zero knowledge sources uploaded.
+  const [noKnowledge, setNoKnowledge] = useState<Record<number, boolean>>({});
 
   const startEdit = (b: Bot) => {
     setEditingId(b.id);
@@ -66,7 +70,16 @@ export default function BotsPage() {
 
   useEffect(() => {
     listBots()
-      .then(setBots)
+      .then((loaded) => {
+        setBots(loaded);
+        Promise.all(
+          loaded.map((b) =>
+            listKnowledge(b.id)
+              .then((sources) => [b.id, sources.length === 0] as const)
+              .catch(() => [b.id, false] as const)
+          )
+        ).then((entries) => setNoKnowledge(Object.fromEntries(entries)));
+      })
       .catch(() => toast.error("Failed to load"))
       .finally(() => setLoading(false));
   }, []);
@@ -80,6 +93,7 @@ export default function BotsPage() {
         system_prompt: systemPrompt || undefined,
       });
       setBots((prev) => [...prev, bot]);
+      setNoKnowledge((prev) => ({ ...prev, [bot.id]: true }));
       setName("");
       setSystemPrompt("");
       setShowForm(false);
@@ -226,6 +240,19 @@ export default function BotsPage() {
                 </span>
               </div>
               </div>
+              {noKnowledge[b.id] && (
+                <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
+                  <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                  <span>
+                    Your bot is not ready to answer questions without knowledge of your website or business.
+                    Please feed your bot knowledge by uploading a .txt or .md file about your business in{" "}
+                    <Link href={`/dashboard/bots/${b.id}/knowledge`} className="font-medium underline underline-offset-2">
+                      Knowledge
+                    </Link>
+                    .
+                  </span>
+                </div>
+              )}
               {handoffFor === b.id && (
                 <HandoffSettings
                   bot={b}
