@@ -2,16 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { KeyRound, CheckCircle2, Circle, Loader2, ShieldAlert, GitBranch } from "lucide-react";
-import {
-  getSettings,
-  updateSettings,
-  getFallbackChain,
-  updateFallbackChain,
-  type SettingsOut,
-  type FallbackTier,
-} from "@/lib/settings";
-import FallbackChainEditor, { validateChain } from "@/components/settings/FallbackChainEditor";
+import { KeyRound, CheckCircle2, Circle, Loader2, ShieldAlert } from "lucide-react";
+import { getSettings, updateSettings, type SettingsOut } from "@/lib/settings";
 import { listModels, type ModelOption } from "@/lib/bots";
 
 /** A secret field: shows whether it's already set (+hint), with an input to replace it. */
@@ -57,75 +49,6 @@ function SecretField({
   );
 }
 
-function FallbackChainCard() {
-  const [tiers, setTiers] = useState<FallbackTier[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    getFallbackChain()
-      .then(setTiers)
-      .catch(() => toast.error("Failed to load fallback chain"))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const save = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!tiers) return;
-    const problem = validateChain(tiers);
-    if (problem) {
-      toast.error(problem);
-      return;
-    }
-    setSaving(true);
-    try {
-      setTiers(await updateFallbackChain(tiers));
-      toast.success("Fallback chain saved");
-    } catch (err: any) {
-      toast.error(err?.response?.data?.detail || "Failed to save");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading || !tiers) {
-    return (
-      <div className="flex h-32 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 dark:border-slate-800">
-        <Loader2 className="animate-spin" size={18} />
-      </div>
-    );
-  }
-
-  return (
-    <form onSubmit={save} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950">
-          <GitBranch size={20} />
-        </div>
-        <div>
-          <div className="text-lg font-semibold">Default chat fallback chain</div>
-          <p className="text-sm text-slate-500">
-            Used by any package that hasn&apos;t defined its own chain. Models are tried top to
-            bottom until one answers. Set a per-plan chain under Admin &rarr; Packages.
-          </p>
-        </div>
-      </div>
-
-      <FallbackChainEditor tiers={tiers} onChange={setTiers} />
-
-      <div>
-        <button
-          type="submit"
-          disabled={saving}
-          className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:opacity-60"
-        >
-          {saving ? "Saving…" : "Save fallback chain"}
-        </button>
-      </div>
-    </form>
-  );
-}
-
 export default function SettingsPage() {
   const [settings, setSettings] = useState<SettingsOut | null>(null);
   const [models, setModels] = useState<ModelOption[]>([]);
@@ -140,6 +63,10 @@ export default function SettingsPage() {
   const [defaultModel, setDefaultModel] = useState("");
   const [fonnteToken, setFonnteToken] = useState("");
   const [encryptionKey, setEncryptionKey] = useState("");
+  const [embeddingsProvider, setEmbeddingsProvider] = useState<"voyage" | "openrouter">("voyage");
+  const [embeddingMain, setEmbeddingMain] = useState("");
+  const [embeddingFallback1, setEmbeddingFallback1] = useState("");
+  const [embeddingFallback2, setEmbeddingFallback2] = useState("");
 
   const load = async () => {
     try {
@@ -147,6 +74,10 @@ export default function SettingsPage() {
       setSettings(s);
       setBaseUrl(s.openrouter_base_url);
       setDefaultModel(s.default_chat_model);
+      setEmbeddingsProvider(s.embeddings_provider);
+      setEmbeddingMain(s.embedding_model_openrouter_main);
+      setEmbeddingFallback1(s.embedding_model_openrouter_fallback_1);
+      setEmbeddingFallback2(s.embedding_model_openrouter_fallback_2);
       setModels(await listModels());
     } catch (err: any) {
       if (err?.response?.status === 403) setForbidden(true);
@@ -162,6 +93,10 @@ export default function SettingsPage() {
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (embeddingsProvider === "openrouter" && !embeddingMain.trim()) {
+      toast.error("Set a main embedding model before switching to OpenRouter");
+      return;
+    }
     setSaving(true);
     try {
       const updated = await updateSettings({
@@ -171,6 +106,10 @@ export default function SettingsPage() {
         default_chat_model: defaultModel || undefined,
         fonnte_account_token: fonnteToken || undefined,
         field_encryption_key: encryptionKey || undefined,
+        embeddings_provider: embeddingsProvider,
+        embedding_model_openrouter_main: embeddingMain || undefined,
+        embedding_model_openrouter_fallback_1: embeddingFallback1 || undefined,
+        embedding_model_openrouter_fallback_2: embeddingFallback2 || undefined,
       });
       setSettings(updated);
       setOpenrouterKey("");
@@ -233,14 +172,64 @@ export default function SettingsPage() {
           value={openrouterKey}
           onChange={setOpenrouterKey}
         />
-        <SecretField
-          label="Voyage API key"
-          help="Embeddings for knowledge-base search. Get it at dashboard.voyageai.com"
-          isSet={settings!.voyage_api_key_set}
-          hint={settings!.voyage_api_key_hint}
-          value={voyageKey}
-          onChange={setVoyageKey}
-        />
+        <div>
+          <label className="mb-1 block text-sm font-medium">Embedding model provider</label>
+          <select
+            value={embeddingsProvider}
+            onChange={(e) => setEmbeddingsProvider(e.target.value as "voyage" | "openrouter")}
+            className={inputCls}
+          >
+            <option value="voyage">Voyage AI</option>
+            <option value="openrouter">OpenRouter</option>
+          </select>
+          <p className="mt-1 text-xs text-slate-500">
+            Used for knowledge-base search. Voyage AI&apos;s free tier is rate-limited (3 RPM /
+            10K TPM) — switch to OpenRouter for higher-volume commercial use.
+          </p>
+        </div>
+
+        {embeddingsProvider === "voyage" ? (
+          <SecretField
+            label="Voyage API key"
+            help="Embeddings for knowledge-base search. Get it at dashboard.voyageai.com"
+            isSet={settings!.voyage_api_key_set}
+            hint={settings!.voyage_api_key_hint}
+            value={voyageKey}
+            onChange={setVoyageKey}
+          />
+        ) : (
+          <div className="space-y-4 rounded-lg border border-slate-200 p-4 dark:border-slate-700">
+            <p className="text-xs text-slate-500">
+              Uses the OpenRouter API key above. Models are tried in order — main first, then each
+              fallback — until one succeeds.
+            </p>
+            <div>
+              <label className="mb-1 block text-sm font-medium">Main embedding model</label>
+              <input
+                value={embeddingMain}
+                onChange={(e) => setEmbeddingMain(e.target.value)}
+                placeholder="e.g. openai/text-embedding-3-small"
+                className={`${inputCls} font-mono`}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">Fallback embedding model 1</label>
+              <input
+                value={embeddingFallback1}
+                onChange={(e) => setEmbeddingFallback1(e.target.value)}
+                className={`${inputCls} font-mono`}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">Fallback embedding model 2</label>
+              <input
+                value={embeddingFallback2}
+                onChange={(e) => setEmbeddingFallback2(e.target.value)}
+                className={`${inputCls} font-mono`}
+              />
+            </div>
+          </div>
+        )}
         <SecretField
           label="Fonnte account token"
           help="Platform WhatsApp gateway account — provisions a device per bot when a client connects WhatsApp. Get it at fonnte.com"
@@ -276,8 +265,8 @@ export default function SettingsPage() {
             )}
           </select>
           <p className="mt-1 text-xs text-slate-500">
-            Rarely used now — only as a last-resort fallback if the chain below is empty or misconfigured.
-            The fallback chain below controls which model actually answers.
+            Rarely used — only as a last-resort fallback if a package has no fallback chain of its
+            own. Set each package&apos;s chat models under Admin &rarr; Packages.
           </p>
         </div>
 
@@ -295,10 +284,6 @@ export default function SettingsPage() {
           {saving ? "Saving…" : "Save settings"}
         </button>
       </form>
-
-      <div className="mt-6">
-        <FallbackChainCard />
-      </div>
     </div>
   );
 }

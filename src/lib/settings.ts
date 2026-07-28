@@ -10,6 +10,10 @@ export type SettingsOut = {
   fonnte_account_token_set: boolean;
   fonnte_account_token_hint: string | null;
   field_encryption_key_set: boolean;
+  embeddings_provider: "voyage" | "openrouter";
+  embedding_model_openrouter_main: string;
+  embedding_model_openrouter_fallback_1: string;
+  embedding_model_openrouter_fallback_2: string;
 };
 
 export type SettingsUpdate = {
@@ -19,6 +23,10 @@ export type SettingsUpdate = {
   default_chat_model?: string;
   fonnte_account_token?: string;
   field_encryption_key?: string;
+  embeddings_provider?: "voyage" | "openrouter";
+  embedding_model_openrouter_main?: string;
+  embedding_model_openrouter_fallback_1?: string;
+  embedding_model_openrouter_fallback_2?: string;
 };
 
 export async function getSettings(): Promise<SettingsOut> {
@@ -31,22 +39,12 @@ export async function updateSettings(payload: SettingsUpdate): Promise<SettingsO
   return res.data;
 }
 
-/** One rung of the platform-wide chat fallback chain — which model actually
- *  answers a bot's question, tried top to bottom until one succeeds. Replaces
- *  per-bot/per-package model choice. */
+/** One rung of a package's chat fallback chain — which model actually answers
+ *  a bot's question, tried top to bottom until one succeeds. Set per-package
+ *  under Admin -> Packages. */
 export type FallbackTier = {
   label: string;
   provider: "self_hosted" | "openrouter";
   base_url: string | null;
   model: string;
 };
-
-export async function getFallbackChain(): Promise<FallbackTier[]> {
-  const res = await api.get("/admin/fallback-chain");
-  return res.data.tiers;
-}
-
-export async function updateFallbackChain(tiers: FallbackTier[]): Promise<FallbackTier[]> {
-  const res = await api.put("/admin/fallback-chain", { tiers });
-  return res.data.tiers;
-}
