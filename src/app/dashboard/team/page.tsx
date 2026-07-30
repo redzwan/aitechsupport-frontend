@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { Headset, Loader2, ShieldAlert, UserPlus, KeyRound, Ticket, Copy, Link2, Trash2, LogIn, Smartphone, Download, Laptop, Monitor, Terminal } from "lucide-react";
+import { Headset, Loader2, ShieldAlert, UserPlus, KeyRound, Ticket, Copy, Link2, Trash2, LogIn, Smartphone, Download, Laptop, Monitor, Terminal, Mail, MessageCircle, PhoneOff } from "lucide-react";
 import { acceptInvite } from "@/lib/auth";
 import {
   listAgents,
@@ -11,11 +11,31 @@ import {
   listInvites,
   createInvite,
   revokeInvite,
+  listPresence,
+  getSupportContact,
+  updateSupportContact,
   type Agent,
   type Invite,
+  type PresenceRow,
+  type SupportContact,
 } from "@/lib/team";
 
 type Release = { version?: string; build?: number; downloads?: Record<string, string> };
+
+// How the roster renders each effective presence state. "busy" still counts as
+// reachable — the agent is at the desk on another chat — which is exactly the
+// rule the widget uses when deciding whether to offer "Talk to a human".
+const PRESENCE: Record<string, { label: string; dot: string; cls: string }> = {
+  online: { label: "online", dot: "bg-emerald-500", cls: "text-emerald-700 dark:text-emerald-300" },
+  busy: { label: "busy", dot: "bg-amber-500", cls: "text-amber-700 dark:text-amber-300" },
+  away: { label: "away", dot: "bg-slate-400", cls: "text-slate-500" },
+  offline: { label: "offline", dot: "bg-slate-300 dark:bg-slate-600", cls: "text-slate-400" },
+};
+const REACHABLE = ["online", "busy"];
+
+// The roster is a heartbeat view, so it has to keep moving on its own. Well under
+// the backend's 45s liveness window, so a shift ending shows up quickly.
+const PRESENCE_POLL_MS = 20_000;
 
 const DESKTOP = [
   { key: "macos", label: "macOS", note: ".pkg — double-click to install", Icon: Laptop },
@@ -39,6 +59,13 @@ export default function TeamPage() {
   const [inviteRole, setInviteRole] = useState("agent");
   const [generating, setGenerating] = useState(false);
 
+  const [presence, setPresence] = useState<PresenceRow[]>([]);
+
+  const [contact, setContact] = useState<SupportContact | null>(null);
+  const [supportEmail, setSupportEmail] = useState("");
+  const [supportWa, setSupportWa] = useState("");
+  const [savingContact, setSavingContact] = useState(false);
+
   const [joinCode, setJoinCode] = useState("");
   const [joining, setJoining] = useState(false);
 
@@ -55,9 +82,18 @@ export default function TeamPage() {
 
   const load = async () => {
     try {
-      const [ags, invs] = await Promise.all([listAgents(), listInvites()]);
+      const [ags, invs, pres, sc] = await Promise.all([
+        listAgents(),
+        listInvites(),
+        listPresence().catch(() => [] as PresenceRow[]),
+        getSupportContact(),
+      ]);
       setAgents(ags);
       setInvites(invs);
+      setPresence(pres);
+      setContact(sc);
+      setSupportEmail(sc.support_email || "");
+      setSupportWa(sc.support_whatsapp || "");
     } catch (e: any) {
       if (e?.response?.status === 403) setForbidden(true);
       else toast.error("Failed to load team");
@@ -117,6 +153,35 @@ export default function TeamPage() {
   useEffect(() => {
     load();
   }, []);
+
+  // Keep the roster live without reloading the whole page.
+  useEffect(() => {
+    const t = setInterval(() => {
+      listPresence()
+        .then(setPresence)
+        .catch(() => {});
+    }, PRESENCE_POLL_MS);
+    return () => clearInterval(t);
+  }, []);
+
+  const statusOf = (id: number) => presence.find((p) => p.user_id === id)?.status ?? "offline";
+  const anyoneOnline = presence.some((p) => REACHABLE.includes(p.status));
+
+  const saveContact = async () => {
+    setSavingContact(true);
+    try {
+      const sc = await updateSupportContact({
+        support_email: supportEmail.trim(),
+        support_whatsapp: supportWa.trim(),
+      });
+      setContact(sc);
+      toast.success("Offline contacts saved");
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail || "Could not save");
+    } finally {
+      setSavingContact(false);
+    }
+  };
 
   const onCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -200,6 +265,75 @@ export default function TeamPage() {
         <div>
           <h1 className="text-2xl font-semibold">Support team</h1>
           <p className="text-sm text-slate-500">Create logins for the people who answer your customers in the agent app.</p>
+        </div>
+      </div>
+
+      {/* Live availability + the fallback customers get when nobody is on duty */}
+      <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <PhoneOff size={16} /> When no one is online
+          </div>
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+              anyoneOnline
+                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                : "bg-slate-100 text-slate-500 dark:bg-slate-800"
+            }`}
+          >
+            <span className={`h-2 w-2 rounded-full ${anyoneOnline ? "bg-emerald-500" : "bg-slate-400"}`} />
+            {anyoneOnline
+              ? `${presence.filter((p) => REACHABLE.includes(p.status)).length} online now`
+              : "No one is online"}
+          </span>
+        </div>
+        <p className="mt-1 text-sm text-slate-500">
+          The chat widget only shows <b>Talk to a human</b> while someone from your team is signed in
+          to the agent app. When everyone is offline it shows these contacts instead, so a customer
+          is never left waiting for a reply nobody is there to send.
+        </p>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+              <Mail size={13} /> Support email
+            </span>
+            <input
+              value={supportEmail}
+              onChange={(e) => setSupportEmail(e.target.value)}
+              className={inputCls}
+              placeholder="support@yourcompany.com"
+              type="email"
+              autoComplete="off"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+              <MessageCircle size={13} /> WhatsApp number
+            </span>
+            <input
+              value={supportWa}
+              onChange={(e) => setSupportWa(e.target.value)}
+              className={inputCls}
+              placeholder="012-345 6789"
+              autoComplete="off"
+            />
+          </label>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <button
+            onClick={saveContact}
+            disabled={savingContact}
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+          >
+            {savingContact ? "Saving…" : "Save contacts"}
+          </button>
+          {!contact?.support_email && !contact?.support_whatsapp && (
+            <span className="text-xs text-amber-600 dark:text-amber-400">
+              Nothing set yet — offline customers can only leave their details in a form.
+            </span>
+          )}
         </div>
       </div>
 
@@ -379,6 +513,7 @@ export default function TeamPage() {
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Email</th>
               <th className="px-4 py-3">Role</th>
+              <th className="px-4 py-3">Presence</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
@@ -389,6 +524,16 @@ export default function TeamPage() {
                 <td className="px-4 py-3 font-medium">{a.full_name || "—"}</td>
                 <td className="px-4 py-3 text-slate-500">{a.email}</td>
                 <td className="px-4 py-3">{a.role}</td>
+                <td className="px-4 py-3">
+                  {(() => {
+                    const p = PRESENCE[statusOf(a.id)] ?? PRESENCE.offline;
+                    return (
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${p.cls}`}>
+                        <span className={`h-2 w-2 rounded-full ${p.dot}`} /> {p.label}
+                      </span>
+                    );
+                  })()}
+                </td>
                 <td className="px-4 py-3">
                   {a.is_active ? (
                     <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">active</span>

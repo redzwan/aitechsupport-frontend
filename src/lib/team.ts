@@ -60,3 +60,38 @@ export async function createInvite(p: InviteCreate): Promise<Invite> {
 export async function revokeInvite(id: number): Promise<void> {
   await api.delete(`/team/invites/${id}`);
 }
+
+// ===== Live presence =====
+// Same roster the agent app shows. The Support team page reads it so an owner
+// can see, before a customer does, whether anyone is on duty to take a handoff.
+
+export type PresenceRow = {
+  user_id: number;
+  name: string;
+  role: string;
+  status: "online" | "busy" | "away" | "offline";
+  last_seen_at: string | null;
+};
+
+export async function listPresence(): Promise<PresenceRow[]> {
+  return (await api.get("/agent/presence")).data;
+}
+
+// ===== Offline fallback contacts =====
+
+export type SupportContact = {
+  support_email: string | null;
+  support_whatsapp: string | null;
+  whatsapp_valid: boolean;
+};
+
+export async function getSupportContact(): Promise<SupportContact> {
+  return (await api.get("/team/support-contact")).data;
+}
+
+export async function updateSupportContact(p: {
+  support_email?: string;
+  support_whatsapp?: string;
+}): Promise<SupportContact> {
+  return (await api.put("/team/support-contact", p)).data;
+}
