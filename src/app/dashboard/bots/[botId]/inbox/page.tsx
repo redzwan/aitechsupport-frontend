@@ -281,6 +281,7 @@ export default function InboxPage() {
                   </div>
                   <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
                     {c.contact_email && <span className="inline-flex items-center gap-1"><Mail size={11} /> {c.contact_email}</span>}
+                    {c.contact_phone && <span className="inline-flex items-center gap-1"><Phone size={11} /> {c.contact_phone}</span>}
                     <span>· {c.message_count} msg · {timeAgo(c.last_message_at)}</span>
                     {c.assignee_name && <span className="text-indigo-500">· {c.assignee_name}</span>}
                   </div>
@@ -298,7 +299,14 @@ export default function InboxPage() {
                 <div className="flex items-center justify-between border-b border-slate-100 p-3 dark:border-slate-800">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 text-sm font-medium"><UserIcon size={14} /> {title(selected)}</div>
-                    {selected.assignee_name ? <div className="text-xs text-indigo-500">Claimed by {selected.assignee_name}</div> : selected.contact_email && <a href={`mailto:${selected.contact_email}`} className="text-xs text-slate-500 hover:underline">{selected.contact_email}</a>}
+                    {selected.assignee_name ? (
+                      <div className="text-xs text-indigo-500">Claimed by {selected.assignee_name}</div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        {selected.contact_email && <a href={`mailto:${selected.contact_email}`} className="text-xs text-slate-500 hover:underline">{selected.contact_email}</a>}
+                        {selected.contact_phone && <a href={`tel:${selected.contact_phone}`} className="inline-flex items-center gap-1 text-xs text-slate-500 hover:underline"><Phone size={11} /> {selected.contact_phone}</a>}
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     {selected.status === "needs_human" && !selected.assigned_user_id && (

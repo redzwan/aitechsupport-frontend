@@ -6,6 +6,7 @@ export interface Conversation {
   channel_kind: string | null;
   contact_name: string | null;
   contact_email: string | null;
+  contact_phone: string | null;
   needs_human_at: string | null;
   assigned_user_id: number | null;
   assignee_name: string | null;
