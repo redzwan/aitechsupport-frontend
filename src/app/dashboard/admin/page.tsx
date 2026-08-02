@@ -58,7 +58,7 @@ export default function AdminHub() {
   return (
     <div className="mx-auto max-w-4xl">
       <h1 className="text-2xl font-semibold">Platform admin</h1>
-      <p className="mt-1 text-sm text-slate-500">Manage the AiTechSupport storefront.</p>
+      <p className="mt-1 text-sm text-slate-500">Manage the AiChatSupport storefront.</p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <Stat label="Clients" value={clients.length} />

@@ -21,7 +21,7 @@ export default function Nav() {
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
             <Bot size={18} />
           </span>
-          AiTechSupport
+          AiChatSupport
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">

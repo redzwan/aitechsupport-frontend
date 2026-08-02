@@ -34,7 +34,7 @@ export default async function Home() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: "AiTechSupport",
+    name: "AiChatSupport",
     applicationCategory: "BusinessApplication",
     operatingSystem: "Web",
     description: h.meta_description,
@@ -128,7 +128,7 @@ export default async function Home() {
 
       <Script id="ld-json" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {h.demo_public_key && (
-        <Script src={`https://aitechsupport.my/widget/v1/widget.js`} data-public-key={h.demo_public_key} strategy="lazyOnload" />
+        <Script src={`https://aichatsupport.my/widget/v1/widget.js`} data-public-key={h.demo_public_key} strategy="lazyOnload" />
       )}
     </>
   );

@@ -11,7 +11,7 @@ export default function Footer({ pages, tagline }: { pages: PageLink[]; tagline:
           <div className="md:col-span-2">
             <div className="flex items-center gap-2 font-semibold">
               <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 text-white"><Bot size={16} /></span>
-              AiTechSupport
+              AiChatSupport
             </div>
             <p className="mt-3 max-w-xs text-sm text-slate-500">{tagline}</p>
           </div>
@@ -37,7 +37,7 @@ export default function Footer({ pages, tagline }: { pages: PageLink[]; tagline:
           </div>
         </div>
         <div className="mt-10 border-t border-slate-200 pt-6 text-sm text-slate-400 dark:border-slate-800">
-          © {year} AiTechSupport · aitechsupport.my
+          © {year} AiChatSupport · aichatsupport.my
         </div>
       </div>
     </footer>

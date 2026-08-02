@@ -1,4 +1,4 @@
-# AiTechSupport — Frontend (Next.js)
+# AiChatSupport — Frontend (Next.js)
 
 Dashboard for the support-chatbot SaaS. Businesses configure bots, manage
 knowledge bases, connect WhatsApp, monitor conversations, and manage billing.
@@ -17,6 +17,6 @@ npm run dev                  # http://localhost:3200
 ## Deployment
 VPS (srv1275698, user `realestate`) behind nginx, run via `node server.js` as a
 systemd service, deployed with a `~/deploy-frontend.sh` git-pull + build + restart
-script — same pattern as Realesta. Domain: `aitechsupport.my`.
+script — same pattern as Realesta. Domain: `aichatsupport.my`.
 
 See `../PROJECT_STATE.md` for the phased roadmap.

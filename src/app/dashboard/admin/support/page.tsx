@@ -79,7 +79,7 @@ export default function SupportWidgetPage() {
             <LifeBuoy size={22} /> Support widget
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Put your own support chat bubble on aitechsupport.my — answered by the same team that supports Kerjakan, Realesta and Airevo.
+            Put your own support chat bubble on aichatsupport.my — answered by the same team that supports Kerjakan, Realesta and Airevo.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2.5 pt-1 text-sm font-medium">
@@ -113,7 +113,7 @@ export default function SupportWidgetPage() {
           onChange={(e) => setSnippet(e.target.value)}
           rows={3}
           spellCheck={false}
-          placeholder='<script src="https://aitechsupport.my/widget/v1/widget.js" data-public-key="pk_…" defer></script>'
+          placeholder='<script src="https://aichatsupport.my/widget/v1/widget.js" data-public-key="pk_…" defer></script>'
           className={`mt-2 ${inputCls}`}
         />
         {enabledNoKey && (
@@ -139,7 +139,7 @@ export default function SupportWidgetPage() {
         <p className="font-medium">Before it can answer, on the bot you point here:</p>
         <ol className="mt-2 list-decimal space-y-1 pl-5 text-slate-600 dark:text-slate-400">
           <li>Open its <Link href="/dashboard/bots" className="text-indigo-600 hover:underline">Website widget</Link> page and toggle it <strong>Enabled</strong>.</li>
-          <li>Add <code className="font-mono text-xs">https://aitechsupport.my</code> to its <strong>Allowed domains</strong> (the widget does a browser-origin check).</li>
+          <li>Add <code className="font-mono text-xs">https://aichatsupport.my</code> to its <strong>Allowed domains</strong> (the widget does a browser-origin check).</li>
           <li>Copy its snippet, paste it above, flip this switch on, and Save.</li>
         </ol>
       </div>

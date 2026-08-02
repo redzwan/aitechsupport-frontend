@@ -1,6 +1,6 @@
 import { api } from "./api";
 
-/** The support widget that powers aitechsupport.my's own site. */
+/** The support widget that powers aichatsupport.my's own site. */
 export type SiteWidget = {
   enabled: boolean;
   public_key: string;

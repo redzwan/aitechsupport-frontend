@@ -35,7 +35,7 @@ export default function LoginPage() {
             <LogIn size={20} />
           </div>
           <h1 className="text-xl font-semibold">Sign in</h1>
-          <p className="mt-1 text-sm text-slate-500">AiTechSupport dashboard</p>
+          <p className="mt-1 text-sm text-slate-500">AiChatSupport dashboard</p>
         </div>
         <form onSubmit={onSubmit} className="space-y-4">
           <div>

@@ -248,7 +248,7 @@ export default function BillplzPage() {
         <p className="font-medium text-slate-600 dark:text-slate-300">Setup checklist</p>
         <ol className="mt-2 list-decimal space-y-1 pl-4">
           <li>Sign in to Billplz (use billplz-sandbox.com while testing) and copy your <strong>Secret Key</strong> from Settings.</li>
-          <li>Create a <strong>Collection</strong> for AiTechSupport and paste its ID above.</li>
+          <li>Create a <strong>Collection</strong> for AiChatSupport and paste its ID above.</li>
           <li>Copy the <strong>X-Signature Key</strong> so payment callbacks can be verified.</li>
           <li>Keep <strong>Sandbox mode</strong> on until you&rsquo;ve tested checkout, then switch it off and re-enter your production keys.</li>
         </ol>

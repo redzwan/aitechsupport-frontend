@@ -28,7 +28,7 @@ import {
   type GscMetrics,
 } from "@/lib/adminSeo";
 
-const SITE_URL = "https://aitechsupport.my";
+const SITE_URL = "https://aichatsupport.my";
 
 // Always return a STRING. FastAPI validation errors return `detail` as a list of
 // objects; passing that to toast/JSX would crash React ("Objects are not valid
@@ -63,7 +63,7 @@ export default function AdminSeoPage() {
   const [metrics, setMetrics] = useState<GscMetrics | null>(null);
   const [metricsErr, setMetricsErr] = useState("");
   const [loadingMetrics, setLoadingMetrics] = useState(false);
-  const [form, setForm] = useState({ siteUrl: "sc-domain:aitechsupport.my", saJson: "" });
+  const [form, setForm] = useState({ siteUrl: "sc-domain:aichatsupport.my", saJson: "" });
   const [saving, setSaving] = useState(false);
   const [forbidden, setForbidden] = useState(false);
 
@@ -143,7 +143,7 @@ export default function AdminSeoPage() {
 
       <div>
         <h1 className="text-2xl font-semibold">SEO &amp; Search</h1>
-        <p className="mt-1 text-sm text-slate-500">Live search performance and on-site SEO health for aitechsupport.my.</p>
+        <p className="mt-1 text-sm text-slate-500">Live search performance and on-site SEO health for aichatsupport.my.</p>
       </div>
 
       {/* Google Search Console */}
@@ -214,12 +214,12 @@ export default function AdminSeoPage() {
               <input
                 value={form.siteUrl}
                 onChange={(e) => setForm((f) => ({ ...f, siteUrl: e.target.value }))}
-                placeholder="sc-domain:aitechsupport.my"
+                placeholder="sc-domain:aichatsupport.my"
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-700 dark:bg-slate-800"
               />
               <p className="mt-1 text-xs text-slate-400">
-                Use <span className="font-mono">sc-domain:aitechsupport.my</span> for a Domain property, or{" "}
-                <span className="font-mono">https://aitechsupport.my/</span> for a URL-prefix property.
+                Use <span className="font-mono">sc-domain:aichatsupport.my</span> for a Domain property, or{" "}
+                <span className="font-mono">https://aichatsupport.my/</span> for a URL-prefix property.
               </p>
             </div>
             <div>

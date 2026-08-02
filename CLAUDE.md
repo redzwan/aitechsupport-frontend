@@ -1,4 +1,4 @@
-# AiTechSupport Frontend Context
+# AiChatSupport Frontend Context
 - Language: TypeScript
 - Framework: Next.js 15/16 (App Router)
 - Styling: Tailwind CSS

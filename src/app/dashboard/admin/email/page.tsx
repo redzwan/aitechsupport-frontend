@@ -155,11 +155,11 @@ export default function SmtpPage() {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="mb-1 block text-sm font-medium">From email</label>
-            <input value={fromEmail} onChange={(e) => setFromEmail(e.target.value)} className={inputCls} placeholder="noreply@aitechsupport.my" />
+            <input value={fromEmail} onChange={(e) => setFromEmail(e.target.value)} className={inputCls} placeholder="noreply@aichatsupport.my" />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium">From name</label>
-            <input value={fromName} onChange={(e) => setFromName(e.target.value)} className={inputCls} placeholder="AiTechSupport" />
+            <input value={fromName} onChange={(e) => setFromName(e.target.value)} className={inputCls} placeholder="AiChatSupport" />
           </div>
         </div>
 

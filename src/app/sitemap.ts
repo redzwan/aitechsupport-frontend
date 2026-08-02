@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getPageLinks } from "@/lib/content";
 
-const BASE = "https://aitechsupport.my";
+const BASE = "https://aichatsupport.my";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const pages = (await getPageLinks()) ?? [];

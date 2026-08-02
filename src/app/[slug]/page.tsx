@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const p = await getPage(slug);
   if (!p) return { title: "Not found" };
   return {
-    title: `${p.title} — AiTechSupport`,
+    title: `${p.title} — AiChatSupport`,
     description: p.meta_description ?? undefined,
     alternates: { canonical: `/${slug}` },
   };
