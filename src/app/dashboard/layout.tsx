@@ -72,7 +72,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       >
         <div className="flex items-center justify-between px-5 py-5 text-lg font-semibold">
           <span>
-            AiTech<span className="text-indigo-600">Support</span>
+            AiChat<span className="text-indigo-600">Support</span>
           </span>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -125,7 +125,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Menu size={22} />
           </button>
           <span className="text-base font-semibold">
-            AiTech<span className="text-indigo-600">Support</span>
+            AiChat<span className="text-indigo-600">Support</span>
           </span>
         </div>
         <main className="flex-1 overflow-x-auto px-4 py-6 md:px-8 md:py-8">{children}</main>

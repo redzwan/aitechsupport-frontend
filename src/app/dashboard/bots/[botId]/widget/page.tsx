@@ -6,11 +6,6 @@ import { useParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import {
   ArrowLeft,
-  BookOpen,
-  MessageSquare,
-  Phone,
-  Inbox as InboxIcon,
-  BarChart3,
   Loader2,
   Copy,
   RotateCw,
@@ -25,6 +20,7 @@ import {
   type WidgetAppearance,
 } from "@/lib/widget";
 import { getBot, type Bot } from "@/lib/bots";
+import BotTabs from "@/components/bot/BotTabs";
 
 const inputCls =
   "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-700 dark:bg-slate-800";
@@ -146,24 +142,7 @@ export default function WidgetPage() {
         <ArrowLeft size={14} /> Bots
       </Link>
 
-      {/* tab nav */}
-      <div className="mb-5 flex gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
-        <Link href={`/dashboard/bots/${botId}/knowledge`} className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-slate-500">
-          <BookOpen size={15} /> Knowledge
-        </Link>
-        <span className="flex flex-1 items-center justify-center gap-2 rounded-md bg-white px-3 py-1.5 text-sm font-medium text-indigo-600 shadow-sm dark:bg-slate-900">
-          <MessageSquare size={15} /> Website widget
-        </span>
-        <Link href={`/dashboard/bots/${botId}/whatsapp`} className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-slate-500">
-          <Phone size={15} /> WhatsApp
-        </Link>
-        <Link href={`/dashboard/bots/${botId}/inbox`} className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-slate-500">
-          <InboxIcon size={15} /> Inbox
-        </Link>
-        <Link href={`/dashboard/bots/${botId}/analytics`} className="flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-slate-500">
-          <BarChart3 size={15} /> Analytics
-        </Link>
-      </div>
+      <BotTabs botId={botId} active="widget" />
 
       <div className="mb-6 flex items-center justify-between">
         <div>
