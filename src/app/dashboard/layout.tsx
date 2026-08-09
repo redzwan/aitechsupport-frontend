@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Bot, CreditCard, UserCircle, Boxes, Users, KeyRound, Mail, FileText, HardDrive, Receipt, Headset, LogOut, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { LayoutDashboard, Bot, CreditCard, UserCircle, Boxes, Users, KeyRound, Mail, FileText, HardDrive, Receipt, Headset, LogOut, Loader2, Menu, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, logout } = useAuth();
   const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (loading || !user) {
     return (
@@ -42,6 +44,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
       <Link
         href={href}
+        onClick={() => setSidebarOpen(false)}
         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
           active
             ? "bg-indigo-600 text-white"
@@ -56,9 +59,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
-      <aside className="flex w-60 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <div className="px-5 py-5 text-lg font-semibold">
-          AiTech<span className="text-indigo-600">Support</span>
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-60 -translate-x-full flex-col border-r border-slate-200 bg-white transition-transform duration-200 dark:border-slate-800 dark:bg-slate-900 md:static md:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : ""
+        }`}
+      >
+        <div className="flex items-center justify-between px-5 py-5 text-lg font-semibold">
+          <span>
+            AiTech<span className="text-indigo-600">Support</span>
+          </span>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 md:hidden"
+            aria-label="Close menu"
+          >
+            <X size={20} />
+          </button>
         </div>
         <nav className="flex-1 space-y-1 px-3">
           {clientNav.map((item) => (
@@ -93,7 +115,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
         </div>
       </aside>
-      <main className="flex-1 overflow-x-auto px-8 py-8">{children}</main>
+      <div className="flex min-h-screen flex-1 flex-col">
+        <div className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900 md:hidden">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+            aria-label="Open menu"
+          >
+            <Menu size={22} />
+          </button>
+          <span className="text-base font-semibold">
+            AiTech<span className="text-indigo-600">Support</span>
+          </span>
+        </div>
+        <main className="flex-1 overflow-x-auto px-4 py-6 md:px-8 md:py-8">{children}</main>
+      </div>
     </div>
   );
 }
