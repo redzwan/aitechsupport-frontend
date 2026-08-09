@@ -115,7 +115,7 @@ export default function AdminClientsPage() {
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[720px] text-sm">
           <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500 dark:bg-slate-800/50">
             <tr>
               <th className="px-4 py-3">Organization</th>

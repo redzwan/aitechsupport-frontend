@@ -123,8 +123,8 @@ export default function SmtpPage() {
           Email sending enabled
         </label>
 
-        <div className="grid grid-cols-3 gap-3">
-          <div className="col-span-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="sm:col-span-2">
             <label className="mb-1 block text-sm font-medium">SMTP host</label>
             <input value={host} onChange={(e) => setHost(e.target.value)} className={inputCls} placeholder="smtp.gmail.com" />
           </div>
@@ -134,7 +134,7 @@ export default function SmtpPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="mb-1 block text-sm font-medium">Username</label>
             <input value={username} onChange={(e) => setUsername(e.target.value)} className={inputCls} autoComplete="off" />
@@ -152,7 +152,7 @@ export default function SmtpPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="mb-1 block text-sm font-medium">From email</label>
             <input value={fromEmail} onChange={(e) => setFromEmail(e.target.value)} className={inputCls} placeholder="noreply@aichatsupport.my" />

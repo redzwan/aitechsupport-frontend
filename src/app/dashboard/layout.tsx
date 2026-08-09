@@ -115,7 +115,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
         </div>
       </aside>
-      <div className="flex min-h-screen flex-1 flex-col">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900 md:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
@@ -128,7 +128,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             AiChat<span className="text-indigo-600">Support</span>
           </span>
         </div>
-        <main className="flex-1 overflow-x-auto px-4 py-6 md:px-8 md:py-8">{children}</main>
+        <main className="w-full min-w-0 flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
       </div>
     </div>
   );

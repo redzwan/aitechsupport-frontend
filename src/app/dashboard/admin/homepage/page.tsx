@@ -97,7 +97,7 @@ export default function HomepageEditor() {
           <Field label="Badge" value={c.hero.badge} onChange={(v) => set((d) => { d.hero.badge = v; })} />
           <Field label="Headline" value={c.hero.headline} onChange={(v) => set((d) => { d.hero.headline = v; })} />
           <Field label="Subheadline" value={c.hero.subhead} onChange={(v) => set((d) => { d.hero.subhead = v; })} textarea />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Primary button" value={c.hero.cta_primary} onChange={(v) => set((d) => { d.hero.cta_primary = v; })} />
             <Field label="Secondary button" value={c.hero.cta_secondary} onChange={(v) => set((d) => { d.hero.cta_secondary = v; })} />
           </div>

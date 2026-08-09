@@ -386,7 +386,7 @@ function MetricTable({ title, keyLabel, rows }: { title: string; keyLabel: strin
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {rows.map((r, i) => (
               <tr key={i}>
-                <td className="max-w-[240px] truncate py-1.5 pr-2" title={r.key}>{r.key}</td>
+                <td className="max-w-[150px] truncate py-1.5 pr-2 sm:max-w-[240px]" title={r.key}>{r.key}</td>
                 <td className="px-2 py-1.5 text-right font-medium">{r.clicks.toLocaleString()}</td>
                 <td className="py-1.5 pl-2 text-right text-slate-500">{r.impressions.toLocaleString()}</td>
               </tr>

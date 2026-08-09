@@ -172,7 +172,7 @@ export default function WidgetPage() {
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* left column: config */}
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           {/* embed snippet */}
           <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
             <h2 className="mb-2 text-sm font-semibold">Embed snippet</h2>
