@@ -63,10 +63,12 @@ export default function SettingsPage() {
   const [defaultModel, setDefaultModel] = useState("");
   const [fonnteToken, setFonnteToken] = useState("");
   const [encryptionKey, setEncryptionKey] = useState("");
-  const [embeddingsProvider, setEmbeddingsProvider] = useState<"voyage" | "openrouter">("voyage");
+  const [embeddingsProvider, setEmbeddingsProvider] = useState<"voyage" | "openrouter" | "huggingface">("voyage");
   const [embeddingMain, setEmbeddingMain] = useState("");
   const [embeddingFallback1, setEmbeddingFallback1] = useState("");
   const [embeddingFallback2, setEmbeddingFallback2] = useState("");
+  const [huggingfaceKey, setHuggingfaceKey] = useState("");
+  const [embeddingHuggingface, setEmbeddingHuggingface] = useState("");
 
   const load = async () => {
     try {
@@ -78,6 +80,7 @@ export default function SettingsPage() {
       setEmbeddingMain(s.embedding_model_openrouter_main);
       setEmbeddingFallback1(s.embedding_model_openrouter_fallback_1);
       setEmbeddingFallback2(s.embedding_model_openrouter_fallback_2);
+      setEmbeddingHuggingface(s.embedding_model_huggingface);
       setModels(await listModels());
     } catch (err: any) {
       if (err?.response?.status === 403) setForbidden(true);
@@ -97,6 +100,10 @@ export default function SettingsPage() {
       toast.error("Set a main embedding model before switching to OpenRouter");
       return;
     }
+    if (embeddingsProvider === "huggingface" && !embeddingHuggingface.trim()) {
+      toast.error("Set an embedding model before switching to Hugging Face");
+      return;
+    }
     setSaving(true);
     try {
       const updated = await updateSettings({
@@ -110,10 +117,13 @@ export default function SettingsPage() {
         embedding_model_openrouter_main: embeddingMain || undefined,
         embedding_model_openrouter_fallback_1: embeddingFallback1 || undefined,
         embedding_model_openrouter_fallback_2: embeddingFallback2 || undefined,
+        huggingface_api_key: huggingfaceKey || undefined,
+        embedding_model_huggingface: embeddingHuggingface || undefined,
       });
       setSettings(updated);
       setOpenrouterKey("");
       setVoyageKey("");
+      setHuggingfaceKey("");
       setFonnteToken("");
       setEncryptionKey("");
       toast.success("Settings saved");
@@ -176,19 +186,23 @@ export default function SettingsPage() {
           <label className="mb-1 block text-sm font-medium">Embedding model provider</label>
           <select
             value={embeddingsProvider}
-            onChange={(e) => setEmbeddingsProvider(e.target.value as "voyage" | "openrouter")}
+            onChange={(e) => setEmbeddingsProvider(e.target.value as "voyage" | "openrouter" | "huggingface")}
             className={inputCls}
           >
             <option value="voyage">Voyage AI</option>
             <option value="openrouter">OpenRouter</option>
+            <option value="huggingface">Hugging Face</option>
           </select>
           <p className="mt-1 text-xs text-slate-500">
             Used for knowledge-base search. Voyage AI&apos;s free tier is rate-limited (3 RPM /
-            10K TPM) — switch to OpenRouter for higher-volume commercial use.
+            10K TPM) — switch to OpenRouter or Hugging Face for higher-volume commercial use. The
+            model&apos;s output must match the {" "}
+            <code className="font-mono">EMBEDDING_DIM</code> the database is configured for
+            (1024 by default) — a mismatched model fails ingestion.
           </p>
         </div>
 
-        {embeddingsProvider === "voyage" ? (
+        {embeddingsProvider === "voyage" && (
           <SecretField
             label="Voyage API key"
             help="Embeddings for knowledge-base search. Get it at dashboard.voyageai.com"
@@ -197,18 +211,21 @@ export default function SettingsPage() {
             value={voyageKey}
             onChange={setVoyageKey}
           />
-        ) : (
+        )}
+
+        {embeddingsProvider === "openrouter" && (
           <div className="space-y-4 rounded-lg border border-slate-200 p-4 dark:border-slate-700">
             <p className="text-xs text-slate-500">
               Uses the OpenRouter API key above. Models are tried in order — main first, then each
-              fallback — until one succeeds.
+              fallback — until one succeeds. 1024-dim options: <code className="font-mono">baai/bge-m3</code>,{" "}
+              <code className="font-mono">mistralai/mistral-embed-2312</code>.
             </p>
             <div>
               <label className="mb-1 block text-sm font-medium">Main embedding model</label>
               <input
                 value={embeddingMain}
                 onChange={(e) => setEmbeddingMain(e.target.value)}
-                placeholder="e.g. openai/text-embedding-3-small"
+                placeholder="e.g. baai/bge-m3"
                 className={`${inputCls} font-mono`}
               />
             </div>
@@ -227,6 +244,32 @@ export default function SettingsPage() {
                 onChange={(e) => setEmbeddingFallback2(e.target.value)}
                 className={`${inputCls} font-mono`}
               />
+            </div>
+          </div>
+        )}
+
+        {embeddingsProvider === "huggingface" && (
+          <div className="space-y-4 rounded-lg border border-slate-200 p-4 dark:border-slate-700">
+            <SecretField
+              label="Hugging Face API key"
+              help="Inference API token for feature-extraction (embeddings). Get it at huggingface.co/settings/tokens"
+              isSet={settings!.huggingface_api_key_set}
+              hint={settings!.huggingface_api_key_hint}
+              value={huggingfaceKey}
+              onChange={setHuggingfaceKey}
+            />
+            <div>
+              <label className="mb-1 block text-sm font-medium">Embedding model</label>
+              <input
+                value={embeddingHuggingface}
+                onChange={(e) => setEmbeddingHuggingface(e.target.value)}
+                placeholder="e.g. BAAI/bge-m3"
+                className={`${inputCls} font-mono`}
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                Must be a sentence-embedding model hosted on the HF Inference API and output
+                1024-dim vectors (e.g. <code className="font-mono">BAAI/bge-m3</code>).
+              </p>
             </div>
           </div>
         )}

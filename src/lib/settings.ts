@@ -10,10 +10,13 @@ export type SettingsOut = {
   fonnte_account_token_set: boolean;
   fonnte_account_token_hint: string | null;
   field_encryption_key_set: boolean;
-  embeddings_provider: "voyage" | "openrouter";
+  embeddings_provider: "voyage" | "openrouter" | "huggingface";
   embedding_model_openrouter_main: string;
   embedding_model_openrouter_fallback_1: string;
   embedding_model_openrouter_fallback_2: string;
+  huggingface_api_key_set: boolean;
+  huggingface_api_key_hint: string | null;
+  embedding_model_huggingface: string;
 };
 
 export type SettingsUpdate = {
@@ -23,10 +26,12 @@ export type SettingsUpdate = {
   default_chat_model?: string;
   fonnte_account_token?: string;
   field_encryption_key?: string;
-  embeddings_provider?: "voyage" | "openrouter";
+  embeddings_provider?: "voyage" | "openrouter" | "huggingface";
   embedding_model_openrouter_main?: string;
   embedding_model_openrouter_fallback_1?: string;
   embedding_model_openrouter_fallback_2?: string;
+  huggingface_api_key?: string;
+  embedding_model_huggingface?: string;
 };
 
 export async function getSettings(): Promise<SettingsOut> {
