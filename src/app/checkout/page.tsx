@@ -90,8 +90,16 @@ function CheckoutForm() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!firstName.trim() || !lastName.trim()) {
+      toast.error("Enter your first and last name");
+      return;
+    }
     if (!email.trim()) {
       toast.error("Enter your email");
+      return;
+    }
+    if (!phone.trim()) {
+      toast.error("Enter your phone number");
       return;
     }
     setBusy(true);
@@ -129,11 +137,6 @@ function CheckoutForm() {
       } else {
         if (!org.trim()) {
           toast.error("Enter your business / organization name");
-          setBusy(false);
-          return;
-        }
-        if (!firstName.trim() || !lastName.trim()) {
-          toast.error("Enter your first and last name");
           setBusy(false);
           return;
         }
@@ -200,21 +203,45 @@ function CheckoutForm() {
                 <div className="text-sm font-semibold">Customer Information</div>
               </div>
 
-              <div>
-                <label className={labelCls}>Email *</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setAccountExists(null);
-                  }}
-                  onBlur={onEmailBlur}
-                  className={inputCls}
-                  placeholder="you@company.com"
-                />
-                {checkingEmail && <p className="mt-1 text-xs text-slate-400">Checking…</p>}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className={labelCls}>First Name *</label>
+                  <input required value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputCls} placeholder="John" />
+                </div>
+                <div>
+                  <label className={labelCls}>Last Name *</label>
+                  <input required value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputCls} placeholder="Doe" />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className={labelCls}>Email *</label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setAccountExists(null);
+                    }}
+                    onBlur={onEmailBlur}
+                    className={inputCls}
+                    placeholder="you@company.com"
+                  />
+                  {checkingEmail && <p className="mt-1 text-xs text-slate-400">Checking…</p>}
+                </div>
+                <div>
+                  <label className={labelCls}>Phone *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className={inputCls}
+                    placeholder="+60 12-345 6789"
+                  />
+                </div>
               </div>
 
               {accountExists === true && (
@@ -241,27 +268,6 @@ function CheckoutForm() {
                   <div>
                     <label className={labelCls}>Business / organization *</label>
                     <input required value={org} onChange={(e) => setOrg(e.target.value)} className={inputCls} placeholder="Acme Sdn Bhd" />
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className={labelCls}>First Name *</label>
-                      <input required value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputCls} placeholder="John" />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Last Name *</label>
-                      <input required value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputCls} placeholder="Doe" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className={labelCls}>Phone *</label>
-                    <input
-                      type="tel"
-                      required
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className={inputCls}
-                      placeholder="+60 12-345 6789"
-                    />
                   </div>
                   {isPaid ? (
                     <div>
