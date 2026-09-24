@@ -97,21 +97,31 @@ export async function adminSendAllReminders(): Promise<{ reminders_sent: number 
 // ----- Billplz gateway settings (platform admin) -----
 export type BillplzSettings = {
   enabled: boolean;
-  sandbox: boolean;
-  api_key_set: boolean;
-  api_key_hint: string | null;
-  x_signature_key_set: boolean;
-  x_signature_key_hint: string | null;
-  collection_id: string;
-  configured: boolean;
+  sandbox: boolean; // which credential set is currently active
+  configured: boolean; // the ACTIVE set has an api key + collection
+
+  live_api_key_set: boolean;
+  live_api_key_hint: string | null;
+  live_x_signature_key_set: boolean;
+  live_x_signature_key_hint: string | null;
+  live_collection_id: string;
+
+  sandbox_api_key_set: boolean;
+  sandbox_api_key_hint: string | null;
+  sandbox_x_signature_key_set: boolean;
+  sandbox_x_signature_key_hint: string | null;
+  sandbox_collection_id: string;
 };
 
 export type BillplzUpdate = {
   enabled?: boolean;
   sandbox?: boolean;
-  api_key?: string; // blank -> keep existing
-  x_signature_key?: string; // blank -> keep existing
-  collection_id?: string; // "" clears it
+  live_api_key?: string; // blank -> keep existing
+  live_x_signature_key?: string; // blank -> keep existing
+  live_collection_id?: string; // "" clears it
+  sandbox_api_key?: string; // blank -> keep existing
+  sandbox_x_signature_key?: string; // blank -> keep existing
+  sandbox_collection_id?: string; // "" clears it
 };
 
 export type PaymentRow = {

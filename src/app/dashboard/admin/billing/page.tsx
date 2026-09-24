@@ -25,9 +25,12 @@ export default function BillplzPage() {
 
   const [enabled, setEnabled] = useState(false);
   const [sandbox, setSandbox] = useState(true);
-  const [apiKey, setApiKey] = useState("");
-  const [xSignatureKey, setXSignatureKey] = useState("");
-  const [collectionId, setCollectionId] = useState("");
+  const [liveApiKey, setLiveApiKey] = useState("");
+  const [liveXSignatureKey, setLiveXSignatureKey] = useState("");
+  const [liveCollectionId, setLiveCollectionId] = useState("");
+  const [sandboxApiKey, setSandboxApiKey] = useState("");
+  const [sandboxXSignatureKey, setSandboxXSignatureKey] = useState("");
+  const [sandboxCollectionId, setSandboxCollectionId] = useState("");
 
   const load = async () => {
     try {
@@ -35,7 +38,8 @@ export default function BillplzPage() {
       setS(cfg);
       setEnabled(cfg.enabled);
       setSandbox(cfg.sandbox);
-      setCollectionId(cfg.collection_id);
+      setLiveCollectionId(cfg.live_collection_id);
+      setSandboxCollectionId(cfg.sandbox_collection_id);
     } catch (e: any) {
       if (e?.response?.status === 403) setForbidden(true);
       else toast.error("Failed to load Billplz settings");
@@ -55,13 +59,18 @@ export default function BillplzPage() {
       const cfg = await updateBillplz({
         enabled,
         sandbox,
-        api_key: apiKey || undefined,
-        x_signature_key: xSignatureKey || undefined,
-        collection_id: collectionId,
+        live_api_key: liveApiKey || undefined,
+        live_x_signature_key: liveXSignatureKey || undefined,
+        live_collection_id: liveCollectionId,
+        sandbox_api_key: sandboxApiKey || undefined,
+        sandbox_x_signature_key: sandboxXSignatureKey || undefined,
+        sandbox_collection_id: sandboxCollectionId,
       });
       setS(cfg);
-      setApiKey("");
-      setXSignatureKey("");
+      setLiveApiKey("");
+      setLiveXSignatureKey("");
+      setSandboxApiKey("");
+      setSandboxXSignatureKey("");
       toast.success("Billplz settings saved");
     } catch {
       toast.error("Failed to save");
@@ -197,42 +206,85 @@ export default function BillplzPage() {
         <label className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
           <input type="checkbox" checked={sandbox} onChange={(e) => setSandbox(e.target.checked)} className="h-4 w-4" />
           <FlaskConical size={15} />
-          Sandbox mode (test environment — no real charges)
+          Sandbox mode active (use the sandbox credentials below for checkout — no real charges)
         </label>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
-            <div className="mb-1 flex items-center gap-2">
-              <label className="text-sm font-medium">Secret API key</label>
-              {s?.api_key_set ? (
-                <span className="inline-flex items-center gap-1 text-xs text-emerald-600"><CheckCircle2 size={12} /> set {s.api_key_hint}</span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-xs text-slate-400"><Circle size={12} /> not set</span>
-              )}
-            </div>
-            <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} className={inputCls} placeholder={s?.api_key_set ? "•••••• (unchanged)" : "Billplz secret key"} autoComplete="new-password" />
+        {/* Live credentials */}
+        <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+          <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+            <span className={`h-2 w-2 rounded-full ${!sandbox ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"}`} />
+            Live credentials {!sandbox && <span className="text-xs font-normal text-emerald-600">(active)</span>}
           </div>
-          <div>
-            <div className="mb-1 flex items-center gap-2">
-              <label className="text-sm font-medium">X-Signature key</label>
-              {s?.x_signature_key_set ? (
-                <span className="inline-flex items-center gap-1 text-xs text-emerald-600"><CheckCircle2 size={12} /> set {s.x_signature_key_hint}</span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-xs text-slate-400"><Circle size={12} /> not set</span>
-              )}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <div className="mb-1 flex items-center gap-2">
+                <label className="text-sm font-medium">Secret API key</label>
+                {s?.live_api_key_set ? (
+                  <span className="inline-flex items-center gap-1 text-xs text-emerald-600"><CheckCircle2 size={12} /> set {s.live_api_key_hint}</span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-xs text-slate-400"><Circle size={12} /> not set</span>
+                )}
+              </div>
+              <input type="password" value={liveApiKey} onChange={(e) => setLiveApiKey(e.target.value)} className={inputCls} placeholder={s?.live_api_key_set ? "•••••• (unchanged)" : "Billplz secret key"} autoComplete="new-password" />
             </div>
-            <input type="password" value={xSignatureKey} onChange={(e) => setXSignatureKey(e.target.value)} className={inputCls} placeholder={s?.x_signature_key_set ? "•••••• (unchanged)" : "webhook signature key"} autoComplete="new-password" />
+            <div>
+              <div className="mb-1 flex items-center gap-2">
+                <label className="text-sm font-medium">X-Signature key</label>
+                {s?.live_x_signature_key_set ? (
+                  <span className="inline-flex items-center gap-1 text-xs text-emerald-600"><CheckCircle2 size={12} /> set {s.live_x_signature_key_hint}</span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-xs text-slate-400"><Circle size={12} /> not set</span>
+                )}
+              </div>
+              <input type="password" value={liveXSignatureKey} onChange={(e) => setLiveXSignatureKey(e.target.value)} className={inputCls} placeholder={s?.live_x_signature_key_set ? "•••••• (unchanged)" : "webhook signature key"} autoComplete="new-password" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <label className="mb-1 block text-sm font-medium">Collection ID</label>
+            <input value={liveCollectionId} onChange={(e) => setLiveCollectionId(e.target.value)} className={inputCls} placeholder="e.g. rg8mkiu6" autoComplete="off" />
           </div>
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium">Collection ID</label>
-          <input value={collectionId} onChange={(e) => setCollectionId(e.target.value)} className={inputCls} placeholder="e.g. inbmmepb" autoComplete="off" />
-          <p className="mt-1 text-xs text-slate-400">
-            Create a billing collection in your Billplz dashboard, then paste its ID here. Sandbox and
-            production each have their own keys and collections.
-          </p>
+        {/* Sandbox credentials */}
+        <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+          <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+            <span className={`h-2 w-2 rounded-full ${sandbox ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"}`} />
+            Sandbox credentials {sandbox && <span className="text-xs font-normal text-emerald-600">(active)</span>}
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <div className="mb-1 flex items-center gap-2">
+                <label className="text-sm font-medium">Secret API key</label>
+                {s?.sandbox_api_key_set ? (
+                  <span className="inline-flex items-center gap-1 text-xs text-emerald-600"><CheckCircle2 size={12} /> set {s.sandbox_api_key_hint}</span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-xs text-slate-400"><Circle size={12} /> not set</span>
+                )}
+              </div>
+              <input type="password" value={sandboxApiKey} onChange={(e) => setSandboxApiKey(e.target.value)} className={inputCls} placeholder={s?.sandbox_api_key_set ? "•••••• (unchanged)" : "Billplz sandbox secret key"} autoComplete="new-password" />
+            </div>
+            <div>
+              <div className="mb-1 flex items-center gap-2">
+                <label className="text-sm font-medium">X-Signature key</label>
+                {s?.sandbox_x_signature_key_set ? (
+                  <span className="inline-flex items-center gap-1 text-xs text-emerald-600"><CheckCircle2 size={12} /> set {s.sandbox_x_signature_key_hint}</span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-xs text-slate-400"><Circle size={12} /> not set</span>
+                )}
+              </div>
+              <input type="password" value={sandboxXSignatureKey} onChange={(e) => setSandboxXSignatureKey(e.target.value)} className={inputCls} placeholder={s?.sandbox_x_signature_key_set ? "•••••• (unchanged)" : "webhook signature key"} autoComplete="new-password" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <label className="mb-1 block text-sm font-medium">Collection ID</label>
+            <input value={sandboxCollectionId} onChange={(e) => setSandboxCollectionId(e.target.value)} className={inputCls} placeholder="e.g. inbmmepb" autoComplete="off" />
+          </div>
         </div>
+        <p className="text-xs text-slate-400">
+          Live and sandbox are separate Billplz accounts, each with its own key, X-Signature secret and
+          collection. Toggling sandbox mode just switches which set checkout uses — neither overwrites
+          the other.
+        </p>
 
         <div className="flex items-center gap-3">
           <button type="submit" disabled={saving} className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60">
@@ -247,10 +299,10 @@ export default function BillplzPage() {
       <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900/50">
         <p className="font-medium text-slate-600 dark:text-slate-300">Setup checklist</p>
         <ol className="mt-2 list-decimal space-y-1 pl-4">
-          <li>Sign in to Billplz (use billplz-sandbox.com while testing) and copy your <strong>Secret Key</strong> from Settings.</li>
-          <li>Create a <strong>Collection</strong> for AiChatSupport and paste its ID above.</li>
-          <li>Copy the <strong>X-Signature Key</strong> so payment callbacks can be verified.</li>
-          <li>Keep <strong>Sandbox mode</strong> on until you&rsquo;ve tested checkout, then switch it off and re-enter your production keys.</li>
+          <li>Sign in to your <strong>sandbox</strong> Billplz account (billplz-sandbox.com), copy its Secret Key + create a Collection, and fill in the Sandbox credentials above.</li>
+          <li>Sign in to your <strong>live</strong> Billplz account (billplz.com), copy its Secret Key + Collection, and fill in the Live credentials above.</li>
+          <li>Copy each account&rsquo;s <strong>X-Signature Key</strong> so payment callbacks can be verified.</li>
+          <li>Toggle <strong>Sandbox mode</strong> on to trial checkout risk-free, then off to go live — both credential sets stay saved either way.</li>
         </ol>
       </div>
 
