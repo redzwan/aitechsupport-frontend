@@ -135,12 +135,8 @@ function CheckoutForm() {
           router.push("/dashboard");
         }
       } else {
-        if (!org.trim()) {
-          toast.error("Enter your business / organization name");
-          setBusy(false);
-          return;
-        }
         const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+        const orgName = org.trim() || fullName;
 
         if (isPaid) {
           if (password.length < 6) {
@@ -148,13 +144,13 @@ function CheckoutForm() {
             setBusy(false);
             return;
           }
-          await register(org, email.trim().toLowerCase(), password, fullName, phone);
+          await register(orgName, email.trim().toLowerCase(), password, fullName, phone);
           const redirected = await goToPayment();
           if (redirected) return;
           toast.success("Account created");
           router.push("/dashboard");
         } else {
-          await checkoutSignup(org, email.trim().toLowerCase(), fullName, phone, planSlug);
+          await checkoutSignup(orgName, email.trim().toLowerCase(), fullName, phone, planSlug);
           setSent(true);
         }
       }
@@ -266,8 +262,8 @@ function CheckoutForm() {
               {accountExists === false && (
                 <>
                   <div>
-                    <label className={labelCls}>Business / organization *</label>
-                    <input required value={org} onChange={(e) => setOrg(e.target.value)} className={inputCls} placeholder="Acme Sdn Bhd" />
+                    <label className={labelCls}>Business / organization</label>
+                    <input value={org} onChange={(e) => setOrg(e.target.value)} className={inputCls} placeholder="Acme Sdn Bhd (optional)" />
                   </div>
                   {isPaid ? (
                     <div>
