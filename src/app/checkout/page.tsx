@@ -4,9 +4,9 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-hot-toast";
-import { ChevronRight, Loader2, Lock, MailCheck } from "lucide-react";
+import { ChevronRight, CreditCard, Info, Loader2, Lock, MailCheck } from "lucide-react";
 import Nav from "@/components/marketing/Nav";
-import { checkEmail, checkoutSignup, login } from "@/lib/auth";
+import { checkEmail, checkoutSignup, login, register } from "@/lib/auth";
 import { api, API_URL } from "@/lib/api";
 import type { Pkg } from "@/lib/content";
 
@@ -16,6 +16,14 @@ const labelCls = "mb-1 block text-sm font-medium";
 
 function priceLabel(p: Pkg): string {
   return p.price_myr === 0 ? "Free" : `RM${p.price_myr}`;
+}
+
+function StepBadge({ n }: { n: number }) {
+  return (
+    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-semibold text-white">
+      {n}
+    </span>
+  );
 }
 
 function CheckoutForm() {
@@ -30,12 +38,15 @@ function CheckoutForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [org, setOrg] = useState("");
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
 
   // null = not checked yet, true = existing account (needs password), false = new signup
   const [accountExists, setAccountExists] = useState<boolean | null>(null);
   const [checkingEmail, setCheckingEmail] = useState(false);
+
+  const isPaid = (plan?.price_myr ?? 0) > 0;
 
   useEffect(() => {
     fetch(`${API_URL}/api/v1/content/packages`)
@@ -61,6 +72,22 @@ function CheckoutForm() {
     }
   };
 
+  const goToPayment = async () => {
+    if (!plan) return false;
+    try {
+      const res = await api.post("/billing/checkout", { package_slug: plan.slug });
+      if (res.data.payment_url) {
+        window.location.href = res.data.payment_url;
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail;
+      toast.error(typeof detail === "string" ? detail : "Couldn't start payment — our team will follow up to activate your plan.");
+      return false;
+    }
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
@@ -80,24 +107,53 @@ function CheckoutForm() {
       }
 
       if (accountExists) {
+        if (!password) {
+          toast.error("Enter your password");
+          setBusy(false);
+          return;
+        }
         await login(email.trim().toLowerCase(), password);
-        if (plan && plan.price_myr === 0) {
+        if (isPaid) {
+          const redirected = await goToPayment();
+          if (redirected) return;
+          router.push("/dashboard");
+        } else {
           try {
-            await api.post("/billing/subscribe", { package_slug: plan.slug });
+            await api.post("/billing/subscribe", { package_slug: planSlug });
           } catch {
             // Already on this plan, or a non-owner — fine, proceed to dashboard.
           }
+          toast.success("Signed in");
+          router.push("/dashboard");
         }
-        toast.success("Signed in");
-        router.push("/dashboard");
       } else {
         if (!org.trim()) {
           toast.error("Enter your business / organization name");
           setBusy(false);
           return;
         }
-        await checkoutSignup(org, email.trim().toLowerCase(), fullName, phone, planSlug);
-        setSent(true);
+        if (!firstName.trim() || !lastName.trim()) {
+          toast.error("Enter your first and last name");
+          setBusy(false);
+          return;
+        }
+        const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+
+        if (isPaid) {
+          if (password.length < 6) {
+            toast.error("Password must be at least 6 characters");
+            setBusy(false);
+            return;
+          }
+          await register(org, email.trim().toLowerCase(), password, fullName, phone);
+          const redirected = await goToPayment();
+          if (redirected) return;
+          toast.success("Account created");
+          router.push("/dashboard");
+        } else {
+          await checkoutSignup(org, email.trim().toLowerCase(), fullName, phone, planSlug);
+          setSent(true);
+        }
       }
     } catch (err: any) {
       const detail = err?.response?.data?.detail;
@@ -137,69 +193,123 @@ function CheckoutForm() {
         <h1 className="mb-8 text-2xl font-bold tracking-tight sm:text-3xl">Checkout</h1>
 
         <form onSubmit={onSubmit} className="grid gap-6 lg:grid-cols-[1fr_360px]">
-          <div className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="text-sm font-semibold text-slate-500">Account details</div>
+          <div className="space-y-6">
+            <div className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-center gap-2.5">
+                <StepBadge n={1} />
+                <div className="text-sm font-semibold">Customer Information</div>
+              </div>
 
-            <div>
-              <label className={labelCls}>Email</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setAccountExists(null);
-                }}
-                onBlur={onEmailBlur}
-                className={inputCls}
-                placeholder="you@company.com"
-              />
-              {checkingEmail && <p className="mt-1 text-xs text-slate-400">Checking…</p>}
+              <div>
+                <label className={labelCls}>Email *</label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setAccountExists(null);
+                  }}
+                  onBlur={onEmailBlur}
+                  className={inputCls}
+                  placeholder="you@company.com"
+                />
+                {checkingEmail && <p className="mt-1 text-xs text-slate-400">Checking…</p>}
+              </div>
+
+              {accountExists === true && (
+                <div>
+                  <label className={labelCls}>Password *</label>
+                  <input
+                    type="password"
+                    required
+                    autoFocus
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={inputCls}
+                    placeholder="••••••••"
+                  />
+                  <p className="mt-1.5 text-xs text-slate-500">
+                    We found an account for this email — welcome back. Sign in to continue.{" "}
+                    <Link href="/forgot-password" className="font-medium text-indigo-600 hover:underline">Forgot password?</Link>
+                  </p>
+                </div>
+              )}
+
+              {accountExists === false && (
+                <>
+                  <div>
+                    <label className={labelCls}>Business / organization *</label>
+                    <input required value={org} onChange={(e) => setOrg(e.target.value)} className={inputCls} placeholder="Acme Sdn Bhd" />
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className={labelCls}>First Name *</label>
+                      <input required value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputCls} placeholder="John" />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Last Name *</label>
+                      <input required value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputCls} placeholder="Doe" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Phone *</label>
+                    <input
+                      type="tel"
+                      required
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className={inputCls}
+                      placeholder="+60 12-345 6789"
+                    />
+                  </div>
+                  {isPaid ? (
+                    <div>
+                      <label className={labelCls}>Password *</label>
+                      <input
+                        type="password"
+                        required
+                        minLength={6}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className={inputCls}
+                        placeholder="At least 6 characters"
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500">
+                      No password needed here — we&apos;ll email you a link to verify your address and set one.
+                    </p>
+                  )}
+                </>
+              )}
             </div>
 
-            {accountExists === true && (
-              <div>
-                <label className={labelCls}>Password</label>
-                <input
-                  type="password"
-                  required
-                  autoFocus
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={inputCls}
-                  placeholder="••••••••"
-                />
-                <p className="mt-1.5 text-xs text-slate-500">
-                  We found an account for this email — welcome back. Sign in to continue.{" "}
-                  <Link href="/forgot-password" className="font-medium text-indigo-600 hover:underline">Forgot password?</Link>
-                </p>
-              </div>
-            )}
+            {isPaid && (
+              <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="flex items-center gap-2.5">
+                  <StepBadge n={2} />
+                  <div className="text-sm font-semibold">Payment Method</div>
+                </div>
 
-            {accountExists === false && (
-              <>
-                <div>
-                  <label className={labelCls}>Business / organization</label>
-                  <input required value={org} onChange={(e) => setOrg(e.target.value)} className={inputCls} placeholder="Acme Sdn Bhd" />
+                <div className="rounded-xl border border-indigo-500 bg-indigo-50 p-4 dark:bg-indigo-950/30">
+                  <label className="flex items-start gap-3">
+                    <input type="radio" checked readOnly className="mt-1 accent-indigo-600" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <CreditCard size={16} className="text-indigo-600" />
+                        Online Payment
+                        <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300">via Billplz</span>
+                      </div>
+                      <p className="mt-1 text-xs text-slate-500">Pay securely online via FPX (online banking) or credit/debit card.</p>
+                    </div>
+                  </label>
+                  <div className="mt-3 flex items-start gap-2 rounded-lg bg-white/70 p-3 text-xs text-indigo-800 dark:bg-slate-900/50 dark:text-indigo-300">
+                    <Info size={14} className="mt-0.5 shrink-0" />
+                    You&apos;ll be redirected to Billplz to complete your payment after this step.
+                  </div>
                 </div>
-                <div>
-                  <label className={labelCls}>Your name</label>
-                  <input value={fullName} onChange={(e) => setFullName(e.target.value)} className={inputCls} placeholder="Optional" />
-                </div>
-                <div>
-                  <label className={labelCls}>Phone</label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className={inputCls}
-                    placeholder="+60 12-345 6789"
-                  />
-                </div>
-                <p className="text-xs text-slate-500">
-                  No password needed here — we&apos;ll email you a link to verify your address and set one.
-                </p>
-              </>
+              </div>
             )}
           </div>
 
@@ -219,11 +329,6 @@ function CheckoutForm() {
                   <span>Total due today</span>
                   <span>{plan.price_myr === 0 ? "RM0" : priceLabel(plan)}</span>
                 </div>
-                {plan.price_myr > 0 && (
-                  <p className="text-xs text-slate-500">
-                    Paid plans are activated by our team after signup — you&apos;ll start on the Free plan and we&apos;ll follow up to upgrade you.
-                  </p>
-                )}
               </>
             ) : (
               <div className="text-sm text-slate-400">Loading plan…</div>
@@ -236,6 +341,8 @@ function CheckoutForm() {
             >
               {busy ? (
                 <Loader2 size={16} className="animate-spin" />
+              ) : isPaid ? (
+                "Proceed to Payment"
               ) : accountExists ? (
                 "Sign in & continue"
               ) : (

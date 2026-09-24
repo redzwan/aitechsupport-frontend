@@ -52,13 +52,15 @@ export async function register(
   organizationName: string,
   email: string,
   password: string,
-  fullName?: string
+  fullName?: string,
+  phone?: string
 ): Promise<void> {
   const res = await api.post("/auth/register", {
     organization_name: organizationName,
     email,
     password,
     full_name: fullName || null,
+    phone: phone || null,
   });
   setToken(res.data.access_token);
 }
