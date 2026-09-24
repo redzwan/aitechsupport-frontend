@@ -4,18 +4,18 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-hot-toast";
-import { MailCheck, Rocket } from "lucide-react";
+import { ChevronRight, Loader2, Lock, MailCheck } from "lucide-react";
+import Nav from "@/components/marketing/Nav";
 import { checkEmail, checkoutSignup, login } from "@/lib/auth";
 import { api, API_URL } from "@/lib/api";
 import type { Pkg } from "@/lib/content";
 
-type Step = "email" | "login" | "signup" | "sent";
-
 const inputCls =
   "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-700 dark:bg-slate-800";
+const labelCls = "mb-1 block text-sm font-medium";
 
 function priceLabel(p: Pkg): string {
-  return p.price_myr === 0 ? "Free" : `RM${p.price_myr}/mo`;
+  return p.price_myr === 0 ? "Free" : `RM${p.price_myr}`;
 }
 
 function CheckoutForm() {
@@ -24,13 +24,17 @@ function CheckoutForm() {
   const planSlug = searchParams.get("plan") || "free";
 
   const [plan, setPlan] = useState<Pkg | null>(null);
-  const [step, setStep] = useState<Step>("email");
+  const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [org, setOrg] = useState("");
   const [fullName, setFullName] = useState("");
+
+  // null = not checked yet, true = existing account (needs password), false = new signup
+  const [accountExists, setAccountExists] = useState<boolean | null>(null);
+  const [checkingEmail, setCheckingEmail] = useState(false);
 
   useEffect(() => {
     fetch(`${API_URL}/api/v1/content/packages`)
@@ -39,178 +43,204 @@ function CheckoutForm() {
       .catch(() => setPlan(null));
   }, [planSlug]);
 
-  const onSubmitEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
+  const onEmailBlur = async () => {
+    const value = email.trim().toLowerCase();
+    if (!value || !value.includes("@")) {
+      setAccountExists(null);
+      return;
+    }
+    setCheckingEmail(true);
     try {
-      const exists = await checkEmail(email.trim().toLowerCase());
-      setStep(exists ? "login" : "signup");
+      const exists = await checkEmail(value);
+      setAccountExists(exists);
     } catch {
-      toast.error("Couldn't check that email — try again");
+      setAccountExists(null);
     } finally {
-      setBusy(false);
+      setCheckingEmail(false);
     }
   };
 
-  const onSubmitLogin = async (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email.trim()) {
+      toast.error("Enter your email");
+      return;
+    }
     setBusy(true);
     try {
-      await login(email.trim().toLowerCase(), password);
-      // Best-effort: apply the chosen plan if it's free and different from the
-      // current one. Paid plans are activated by the team (see billing.subscribe).
-      if (plan && plan.price_myr === 0) {
-        try {
-          await api.post("/billing/subscribe", { package_slug: plan.slug });
-        } catch {
-          // Already on this plan, or a non-owner — fine, proceed to dashboard.
+      if (accountExists === null) {
+        // Blur didn't fire (e.g. autofill + direct submit) — resolve it now.
+        const exists = await checkEmail(email.trim().toLowerCase());
+        setAccountExists(exists);
+        if (exists) {
+          setBusy(false);
+          return; // let them fill in the password field that just appeared
         }
       }
-      toast.success("Signed in");
-      router.push("/dashboard");
-    } catch (err: any) {
-      toast.error(err?.response?.data?.detail || "Incorrect email or password");
-    } finally {
-      setBusy(false);
-    }
-  };
 
-  const onSubmitSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    try {
-      await checkoutSignup(org, email.trim().toLowerCase(), fullName, planSlug);
-      setStep("sent");
+      if (accountExists) {
+        await login(email.trim().toLowerCase(), password);
+        if (plan && plan.price_myr === 0) {
+          try {
+            await api.post("/billing/subscribe", { package_slug: plan.slug });
+          } catch {
+            // Already on this plan, or a non-owner — fine, proceed to dashboard.
+          }
+        }
+        toast.success("Signed in");
+        router.push("/dashboard");
+      } else {
+        if (!org.trim()) {
+          toast.error("Enter your business / organization name");
+          setBusy(false);
+          return;
+        }
+        await checkoutSignup(org, email.trim().toLowerCase(), fullName, planSlug);
+        setSent(true);
+      }
     } catch (err: any) {
       const detail = err?.response?.data?.detail;
-      toast.error(typeof detail === "string" ? detail : "Couldn't create your account");
+      toast.error(typeof detail === "string" ? detail : "Something went wrong — try again");
     } finally {
       setBusy(false);
     }
   };
 
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10 dark:bg-slate-950">
-      <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-600 text-white">
-            <Rocket size={20} />
-          </div>
-          <h1 className="text-xl font-semibold">
-            {step === "sent" ? "Check your email" : "Get started"}
-          </h1>
-          {plan && step !== "sent" && (
-            <p className="mt-1 text-sm text-slate-500">
-              {plan.name} plan &middot; {priceLabel(plan)}
-            </p>
-          )}
+  if (sent) {
+    return (
+      <main className="min-h-screen bg-slate-50 dark:bg-slate-950">
+        <Nav />
+        <div className="mx-auto flex max-w-md flex-col items-center px-4 py-24 text-center">
+          <MailCheck size={36} className="mb-4 text-indigo-600" />
+          <h1 className="text-xl font-semibold">Check your email</h1>
+          <p className="mt-2 text-sm text-slate-500">
+            We&apos;ve sent a verification link to <span className="font-medium text-slate-700 dark:text-slate-200">{email}</span>.
+            Open it to verify your email and set your password.
+          </p>
         </div>
+      </main>
+    );
+  }
 
-        {step === "email" && (
-          <form onSubmit={onSubmitEmail} className="space-y-4">
+  return (
+    <main className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      <Nav />
+      <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+        <div className="mb-6 flex items-center gap-1.5 text-sm text-slate-500">
+          <Link href="/" className="hover:text-slate-800 dark:hover:text-slate-200">Home</Link>
+          <ChevronRight size={14} />
+          <Link href="/#pricing" className="hover:text-slate-800 dark:hover:text-slate-200">Pricing</Link>
+          <ChevronRight size={14} />
+          <span className="text-slate-800 dark:text-slate-200">Checkout</span>
+        </div>
+        <h1 className="mb-8 text-2xl font-bold tracking-tight sm:text-3xl">Checkout</h1>
+
+        <form onSubmit={onSubmit} className="grid gap-6 lg:grid-cols-[1fr_360px]">
+          <div className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="text-sm font-semibold text-slate-500">Account details</div>
+
             <div>
-              <label className="mb-1 block text-sm font-medium">Email</label>
+              <label className={labelCls}>Email</label>
               <input
                 type="email"
                 required
-                autoFocus
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setAccountExists(null);
+                }}
+                onBlur={onEmailBlur}
                 className={inputCls}
                 placeholder="you@company.com"
               />
+              {checkingEmail && <p className="mt-1 text-xs text-slate-400">Checking…</p>}
             </div>
+
+            {accountExists === true && (
+              <div>
+                <label className={labelCls}>Password</label>
+                <input
+                  type="password"
+                  required
+                  autoFocus
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={inputCls}
+                  placeholder="••••••••"
+                />
+                <p className="mt-1.5 text-xs text-slate-500">
+                  We found an account for this email — welcome back. Sign in to continue.{" "}
+                  <Link href="/forgot-password" className="font-medium text-indigo-600 hover:underline">Forgot password?</Link>
+                </p>
+              </div>
+            )}
+
+            {accountExists === false && (
+              <>
+                <div>
+                  <label className={labelCls}>Business / organization</label>
+                  <input required value={org} onChange={(e) => setOrg(e.target.value)} className={inputCls} placeholder="Acme Sdn Bhd" />
+                </div>
+                <div>
+                  <label className={labelCls}>Your name</label>
+                  <input value={fullName} onChange={(e) => setFullName(e.target.value)} className={inputCls} placeholder="Optional" />
+                </div>
+                <p className="text-xs text-slate-500">
+                  No password needed here — we&apos;ll email you a link to verify your address and set one.
+                </p>
+              </>
+            )}
+          </div>
+
+          <div className="h-fit space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="text-sm font-semibold text-slate-500">Order summary</div>
+            {plan ? (
+              <>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-600 dark:text-slate-300">{plan.name} plan</span>
+                  <span className="font-medium">{priceLabel(plan)}{plan.price_myr > 0 && "/mo"}</span>
+                </div>
+                <ul className="space-y-1.5 border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-slate-800">
+                  <li>{plan.max_bots} bot{plan.max_bots === 1 ? "" : "s"}</li>
+                  <li>{plan.monthly_token_quota.toLocaleString()} tokens / month</li>
+                </ul>
+                <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-base font-semibold dark:border-slate-800">
+                  <span>Total due today</span>
+                  <span>{plan.price_myr === 0 ? "RM0" : priceLabel(plan)}</span>
+                </div>
+                {plan.price_myr > 0 && (
+                  <p className="text-xs text-slate-500">
+                    Paid plans are activated by our team after signup — you&apos;ll start on the Free plan and we&apos;ll follow up to upgrade you.
+                  </p>
+                )}
+              </>
+            ) : (
+              <div className="text-sm text-slate-400">Loading plan…</div>
+            )}
+
             <button
               type="submit"
               disabled={busy}
-              className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:opacity-60"
             >
-              {busy ? "Checking…" : "Continue"}
+              {busy ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : accountExists ? (
+                "Sign in & continue"
+              ) : (
+                "Create account"
+              )}
             </button>
-          </form>
-        )}
-
-        {step === "login" && (
-          <form onSubmit={onSubmitLogin} className="space-y-4">
-            <p className="text-sm text-slate-500">
-              Welcome back, <span className="font-medium text-slate-700 dark:text-slate-200">{email}</span>.
-              Sign in to continue.
-            </p>
-            <div>
-              <label className="mb-1 block text-sm font-medium">Password</label>
-              <input
-                type="password"
-                required
-                autoFocus
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={inputCls}
-                placeholder="••••••••"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={busy}
-              className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:opacity-60"
-            >
-              {busy ? "Signing in…" : "Sign in & continue"}
-            </button>
-            <div className="flex justify-between text-sm">
-              <button type="button" onClick={() => setStep("email")} className="text-slate-500 hover:underline">
-                Use a different email
-              </button>
-              <Link href="/forgot-password" className="font-medium text-indigo-600 hover:underline">
-                Forgot password?
-              </Link>
-            </div>
-          </form>
-        )}
-
-        {step === "signup" && (
-          <form onSubmit={onSubmitSignup} className="space-y-4">
-            <p className="text-sm text-slate-500">
-              No account yet for <span className="font-medium text-slate-700 dark:text-slate-200">{email}</span>.
-              Let&apos;s create one.
-            </p>
-            <div>
-              <label className="mb-1 block text-sm font-medium">Business / organization</label>
-              <input required autoFocus value={org} onChange={(e) => setOrg(e.target.value)} className={inputCls} placeholder="Acme Sdn Bhd" />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium">Your name</label>
-              <input value={fullName} onChange={(e) => setFullName(e.target.value)} className={inputCls} placeholder="Optional" />
-            </div>
-            <button
-              type="submit"
-              disabled={busy}
-              className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:opacity-60"
-            >
-              {busy ? "Creating…" : "Create account"}
-            </button>
-            <button type="button" onClick={() => setStep("email")} className="w-full text-center text-sm text-slate-500 hover:underline">
-              Use a different email
-            </button>
-          </form>
-        )}
-
-        {step === "sent" && (
-          <div className="text-center">
-            <MailCheck size={32} className="mx-auto mb-3 text-indigo-600" />
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              We&apos;ve sent a verification link to <span className="font-medium">{email}</span>.
-              Open it to verify your email and set your password.
+            <p className="flex items-center justify-center gap-1.5 text-xs text-slate-400">
+              <Lock size={12} /> Your details are encrypted and never shared.
             </p>
           </div>
-        )}
+        </form>
 
-        {step !== "sent" && (
-          <p className="mt-5 text-center text-sm text-slate-500">
-            Already have an account?{" "}
-            <Link href="/login" className="font-medium text-indigo-600 hover:underline">
-              Sign in
-            </Link>
-          </p>
-        )}
+        <p className="mt-6 text-center text-sm text-slate-500">
+          Already have an account?{" "}
+          <Link href="/login" className="font-medium text-indigo-600 hover:underline">Sign in</Link>
+        </p>
       </div>
     </main>
   );
