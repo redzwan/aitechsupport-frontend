@@ -61,7 +61,7 @@ export default function Pricing({
                 ))}
               </ul>
               <Link
-                href="/register"
+                href={`/checkout?plan=${encodeURIComponent(p.slug)}`}
                 className={`mt-6 rounded-lg px-4 py-2.5 text-center text-sm font-medium ${
                   isPopular
                     ? "bg-indigo-600 text-white hover:bg-indigo-700"

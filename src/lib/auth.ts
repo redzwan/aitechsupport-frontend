@@ -9,6 +9,7 @@ export type UserProfile = {
   full_name: string | null;
   role: string;
   is_platform_admin: boolean;
+  is_email_verified: boolean;
 };
 
 export function getToken(): string | null {
@@ -81,6 +82,28 @@ export async function changePassword(currentPassword: string, newPassword: strin
 /** Redeem an invite code as the signed-in user → moved into that organization. */
 export async function acceptInvite(code: string): Promise<UserProfile> {
   return (await api.post("/auth/accept-invite", { code })).data;
+}
+
+/** Single-page checkout: does an account already exist for this email? */
+export async function checkEmail(email: string): Promise<boolean> {
+  const res = await api.post("/auth/check-email", { email });
+  return res.data.exists as boolean;
+}
+
+/** Single-page checkout signup: no password collected — one is generated
+ * server-side and the user sets their real password via the verify email. */
+export async function checkoutSignup(
+  organizationName: string,
+  email: string,
+  fullName: string | undefined,
+  planSlug: string
+): Promise<void> {
+  await api.post("/auth/checkout-signup", {
+    organization_name: organizationName,
+    email,
+    full_name: fullName || null,
+    plan_slug: planSlug,
+  });
 }
 
 export async function forgotPassword(email: string): Promise<void> {

@@ -11,6 +11,7 @@ function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") || "";
+  const isVerify = searchParams.get("verify") === "1";
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -29,7 +30,7 @@ function ResetPasswordForm() {
     setBusy(true);
     try {
       await resetPassword(token, password);
-      toast.success("Password updated — sign in with your new password");
+      toast.success(isVerify ? "Email verified — sign in with your new password" : "Password updated — sign in with your new password");
       router.push("/login");
     } catch (err: any) {
       toast.error(err?.response?.data?.detail || "This reset link is invalid or has expired");
@@ -45,7 +46,10 @@ function ResetPasswordForm() {
           <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-600 text-white">
             <KeyRound size={20} />
           </div>
-          <h1 className="text-xl font-semibold">Choose a new password</h1>
+          <h1 className="text-xl font-semibold">{isVerify ? "Verify your email" : "Choose a new password"}</h1>
+          {isVerify && (
+            <p className="mt-1 text-sm text-slate-500">Set a password to verify your account and finish signing up.</p>
+          )}
         </div>
 
         {!token ? (
