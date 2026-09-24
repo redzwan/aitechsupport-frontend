@@ -31,6 +31,7 @@ function CheckoutForm() {
   const [password, setPassword] = useState("");
   const [org, setOrg] = useState("");
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
 
   // null = not checked yet, true = existing account (needs password), false = new signup
   const [accountExists, setAccountExists] = useState<boolean | null>(null);
@@ -95,7 +96,7 @@ function CheckoutForm() {
           setBusy(false);
           return;
         }
-        await checkoutSignup(org, email.trim().toLowerCase(), fullName, planSlug);
+        await checkoutSignup(org, email.trim().toLowerCase(), fullName, phone, planSlug);
         setSent(true);
       }
     } catch (err: any) {
@@ -184,6 +185,16 @@ function CheckoutForm() {
                 <div>
                   <label className={labelCls}>Your name</label>
                   <input value={fullName} onChange={(e) => setFullName(e.target.value)} className={inputCls} placeholder="Optional" />
+                </div>
+                <div>
+                  <label className={labelCls}>Phone</label>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className={inputCls}
+                    placeholder="+60 12-345 6789"
+                  />
                 </div>
                 <p className="text-xs text-slate-500">
                   No password needed here — we&apos;ll email you a link to verify your address and set one.

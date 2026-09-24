@@ -7,6 +7,7 @@ export type UserProfile = {
   organization_id: number;
   email: string;
   full_name: string | null;
+  phone: string | null;
   role: string;
   is_platform_admin: boolean;
   is_email_verified: boolean;
@@ -96,12 +97,14 @@ export async function checkoutSignup(
   organizationName: string,
   email: string,
   fullName: string | undefined,
+  phone: string | undefined,
   planSlug: string
 ): Promise<void> {
   await api.post("/auth/checkout-signup", {
     organization_name: organizationName,
     email,
     full_name: fullName || null,
+    phone: phone || null,
     plan_slug: planSlug,
   });
 }
